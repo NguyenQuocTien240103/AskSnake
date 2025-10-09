@@ -8,7 +8,7 @@ import bcrypt
 load_dotenv()
 
 class AuthUtils:
-    def create_access_token(data: dict, expires_delta: int = 86400) -> str:
+    def create_token(data: dict, expires_delta: int = 86400) -> str:
         to_encode = data.copy()
         expire = datetime.utcnow() + timedelta(seconds=expires_delta)
         to_encode.update({"exp": expire})
@@ -24,4 +24,5 @@ class AuthUtils:
         return pwd_context.hash(password)
 
     def verify_password(password: str, hashed_password: str) -> bool:
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         return pwd_context.verify(password, hashed_password)

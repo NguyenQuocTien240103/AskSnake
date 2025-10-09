@@ -1,15 +1,18 @@
-from fastapi import HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, APIKeyCookie
+from fastapi import HTTPException, status, Depends
+from datetime import timedelta,datetime
 from utils.AuthUtlis import AuthUtils
-from pydantics.token import Token
-from dotenv import load_dotenv
-from datetime import timedelta
+from pydantics.token import Token, AccessToken
 from config.database import db
+from dotenv import load_dotenv
+from typing import Annotated
 import os
 
 load_dotenv()
+api_key_cookie = APIKeyCookie(name="refresh_token", auto_error=False)
 
 class AuthService:
-    async def get_access_token(email: str, password: str) -> Token:
+    async def get_token(email: str, password: str) -> Token:
         user = await db["users"].find_one({"email": email})
 
         if user is None or not AuthUtils.verify_password(password, user['password']):
@@ -19,9 +22,40 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"}
             )
         
-        access_token_expires = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_SECOND")))     
-        access_token = AuthUtils.create_access_token(data={"email": user['email']}, expires_delta=access_token_expires)
-        return Token(access_token=access_token, token_type="bearer")
+        access_token_expires = int(os.getenv("ACCESS_TOKEN_EXPIRE_SECOND"))  
+        access_token = AuthUtils.create_token(data={"email": user['email']}, expires_delta=access_token_expires)
+        refresh_token_expires = int(os.getenv("REFRESH_TOKEN_EXPIRE_SECOND"))  
+        refresh_token = AuthUtils.create_token(data={"email": user['email']}, expires_delta=refresh_token_expires)
+        result = await db["refresh_token"].insert_one({"user_id": user["_id"], "token": refresh_token, "create_at": datetime.utcnow(), "expires_at": datetime.utcnow() + timedelta(days=7)})
+
+        if not result.inserted_id:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail = "Unable to complete login. Please try again later."
+            )  
+
+        return Token(access_token=access_token,refresh_token=refresh_token)
+    async def get_access_token(refresh_token: Annotated[str, Depends(api_key_cookie)]) -> AccessToken:
+        print("refresh-token",refresh_token)
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        payload = AuthUtils.verify_token(refresh_token)
+        email = payload.get("email")
+        
+        if email is None:
+            raise credentials_exception
+        
+        user = await db["users"].find_one({"email": email})
+
+        if user is None:
+            raise credentials_exception
+    
+        access_token_expires = int(os.getenv("ACCESS_TOKEN_EXPIRE_SECOND"))  
+        access_token = AuthUtils.create_token(data={"email": user['email']}, expires_delta=access_token_expires)
+        return AccessToken(access_token=access_token)
     async def register_user(email: str, password: str):
         existing_user = await db["users"].find_one({"email": email})
 
@@ -34,3 +68,22 @@ class AuthService:
         hashed_password = AuthUtils.hash_password(password)
         result = await db["users"].insert_one({"email": email, "password": hashed_password, "role": "user", "create_at": datetime.utcnow(), "update_at": datetime.utcnow()})
         return result.inserted_id
+    async def verify_refresh_token(refresh_token: Annotated[str, Depends(api_key_cookie)]) -> str:
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        payload = AuthUtils.verify_token(refresh_token)
+        email = payload.get("email")
+        
+        if email is None:
+            raise credentials_exception
+
+        result = await db["refresh_token"].delete_many({"token": refresh_token})
+
+        if result.deleted_count == 0:
+            raise credentials_exception
+            
+        return refresh_token
+    

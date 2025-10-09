@@ -1,15 +1,19 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Response, Depends
 from pydantics.user import UserLogin, UserRegister  
+from pydantics.token import AccessToken
 from services.AuthService import AuthService
-
+from typing import Annotated
 app_router = APIRouter()
 
 @app_router.post("/login", status_code=status.HTTP_200_OK)
-async def login(user: UserLogin):
+async def login(user: UserLogin, response: Response):
     user_dict = user.dict()
     try:
-        access_token = await AuthService.get_access_token(user_dict['email'], user_dict['password'])
-        return access_token
+        # print("abc")
+        token = await AuthService.get_token(user_dict['email'], user_dict['password'])
+        response.set_cookie(key="access_token", value=token.access_token, httponly=True)
+        response.set_cookie(key="refresh_token", value=token.refresh_token, httponly=True)
+        return {"message": "Login successful", "access_token": token.access_token, "refresh_token": token.refresh_token}
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -27,3 +31,14 @@ async def register(user: UserRegister):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+@app_router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(response: Response, token: Annotated[str, Depends(AuthService.verify_refresh_token)]):
+    response.delete_cookie(key="access_token")
+    response.delete_cookie(key="refresh_token")
+    return {"message": "Logout successful"}
+
+@app_router.post("/refresh-token", status_code=status.HTTP_200_OK)
+async def get_new_access_token(response: Response, token: Annotated[AccessToken, Depends(AuthService.get_access_token)]):
+    response.set_cookie(key="access_token", value=token.access_token, httponly=True)
+    return {"message":  "Access token refreshed", "access_token": token.access_token}

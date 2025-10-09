@@ -59,13 +59,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  createConversation: async (title: string, token: string): Promise<Conversation | null> => {
+  createConversation: async (title: string): Promise<Conversation | null> => {
     try {
       const response = await fetch(`${API_URL}/conversations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          // 'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ title }),
       })
