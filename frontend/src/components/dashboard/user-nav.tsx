@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { LayoutGrid, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,33 +8,22 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/stores/use-auth";
 import { logout } from "@/services/authService";
-import { useRouter } from "next/navigation";
-import { Spinner } from '@/components/ui/shadcn-io/spinner'
 
 export function UserNav() {
   const {user, setLogout} = useAuthStore();
-  const router = useRouter();
-  // const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogOut = async () =>{
     try {
-      // setIsLoggingOut(true);
-      setLogout();
       await logout();
-      // await new Promise((resolve)=> setTimeout(resolve,2000))
-      router.push("/");
+      let id = setTimeout(() => {
+        setLogout();
+        clearTimeout(id);
+      }, 1000); 
+      window.location.href = '/login';
     } catch (error) {
       console.error("Error:",error);
     }
   }
-
-  // if(isLoggingOut){
-  //   return (
-  //     <div className="h-screen w-screen flex items-center justify-center">
-  //       <Spinner />
-  //     </div>
-  //   )
-  // }
 
   return (
     <DropdownMenu>

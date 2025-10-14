@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get('access_token')?.value
 
   if (privateRoutes.some((path) => pathname.startsWith(path)) && !sessionToken) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return NextResponse.next()

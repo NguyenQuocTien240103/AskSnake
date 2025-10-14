@@ -13,13 +13,17 @@ api_key_cookie = APIKeyCookie(name="access_token", auto_error=False)
 
 class UserService:
     async def get_current_user(access_token: Annotated[str, Depends(api_key_cookie)]) -> UserBase:
-        print("access_token",access_token)
+        # print("access_token",access_token)
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        payload = AuthUtils.verify_token(access_token)
+        # payload = AuthUtils.verify_token(access_token)
+        try:
+            payload = AuthUtils.verify_token(access_token)
+        except Exception as e:
+            raise credentials_exception
         email = payload.get("email")
         
         if email is None:

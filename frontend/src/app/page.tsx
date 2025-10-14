@@ -1,43 +1,45 @@
-import DashboardLayout from '@/components/dashboard/layout'
+'use client'
+import { useState, useEffect } from 'react';
+import DashboardLayout from '@/components/dashboard/layout';
 import { ContentLayout } from "@/components/dashboard/content-layout";
 import { ChatPublicLayout } from '@/components/chat/chat-public-layout';
 import { ChatContent } from '@/components/chat/chat-content';
 import { getUserCurrent } from '@/services/userService';
-import { cookies } from 'next/headers';
-export default async function Home() {
-  let user = null;
-  const cookieStore = await cookies()
-  // const sessionToken = cookieStore.get('access_token');
-  const accessToken = cookieStore.get('access_token')?.value;
-  const refreshToken = cookieStore.get('refresh_token')?.value;
-  // Tạo string cookie nguyên bản gửi cho backend
-  let cookieHeader = '';
-  if (accessToken) cookieHeader += `access_token=${accessToken}; `;
-  if (refreshToken) cookieHeader += `refresh_token=${refreshToken}; `;
 
+type User = {
+  email: string;
+}
 
-  try {
+export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-    if(cookieHeader){
-      const res = await getUserCurrent(cookieHeader); 
-      user = res.data;
-    }
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await getUserCurrent();
+        setUser(res.data);
+      } catch (error) {
+        console.error(error);
+        setUser(null); 
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  } 
-  catch (error: any) {
-    if (error instanceof Response && error.status === 401) {
-      console.log("Không xác thực, render public layout");
-    } else {
-      console.error("Lỗi gọi getUserCurrent:", error);
-    }
-  } 
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return; 
+  }
 
   if (!user || !user.email) {
     return (
       <ChatPublicLayout>
         <ChatContent />
       </ChatPublicLayout>
-    )
+    );
   }
 
   return (
@@ -47,5 +49,4 @@ export default async function Home() {
       </ContentLayout>
     </DashboardLayout>
   );
-
 }

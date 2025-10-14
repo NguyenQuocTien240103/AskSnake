@@ -36,7 +36,6 @@ class AuthService:
 
         return Token(access_token=access_token,refresh_token=refresh_token)
     async def get_access_token(refresh_token: Annotated[str, Depends(api_key_cookie)]) -> AccessToken:
-        print("refresh-token",refresh_token)
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
