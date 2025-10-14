@@ -9,7 +9,6 @@ app_router = APIRouter()
 async def login(user: UserLogin, response: Response):
     user_dict = user.dict()
     try:
-        # print("abc")
         token = await AuthService.get_token(user_dict['email'], user_dict['password'])
         response.set_cookie(key="access_token", value=token.access_token, httponly=True)
         response.set_cookie(key="refresh_token", value=token.refresh_token, httponly=True)
@@ -40,5 +39,5 @@ async def logout(response: Response, token: Annotated[str, Depends(AuthService.v
 
 @app_router.post("/refresh-token", status_code=status.HTTP_200_OK)
 async def get_new_access_token(response: Response, token: Annotated[AccessToken, Depends(AuthService.get_access_token)]):
-    response.set_cookie(key="access_token", value=token.access_token, httponly=True)
+    response.set_cookie(key="access_token", value = token.access_token, httponly=True)
     return {"message":  "Access token refreshed", "access_token": token.access_token}

@@ -12,4 +12,3 @@ async def get_users_me(current_user: Annotated[UserBase, Depends(UserService.get
         raise e
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
-        # raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
