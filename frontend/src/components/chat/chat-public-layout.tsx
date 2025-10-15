@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PanelsTopLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+
 export function ChatPublicLayout({children}:{children: React.ReactNode}) {
     return (
         <div className="flex flex-col min-h-screen">
@@ -33,10 +34,14 @@ export function ChatPublicLayout({children}:{children: React.ReactNode}) {
                 </div>
             </header>
 
-            {children}
+         
+            <div className="flex-1 flex flex-col pt-4 pb-4 sm:px-8">
+                {children}
+            </div>
+
             
-            <footer className="py-6 md:py-0 border-t border-border/40">
-                <div className="flex flex-col items-center justify-center gap-4 md:h-24 md:flex-row">
+            <footer className="fixed bottom-0 w-full bg-white">
+                <div className="flex flex-col items-center justify-center gap-4  md:flex-row">
                     <p className="text-balance text-center text-sm leading-loose text-muted-foreground">
                         Built on top of{" "}
                         <Link
