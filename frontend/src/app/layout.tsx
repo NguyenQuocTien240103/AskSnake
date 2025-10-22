@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ChatGPT Clone",
+  title: "AskSnake",
   description: "A ChatGPT-like interface built with Next.js and FastAPI",
 };
 
