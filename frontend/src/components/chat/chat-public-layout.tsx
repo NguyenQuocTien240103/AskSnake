@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PanelsTopLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/mode-toggle";
 
 
 export function ChatPublicLayout({children}:{children: React.ReactNode}) {
@@ -18,18 +19,19 @@ export function ChatPublicLayout({children}:{children: React.ReactNode}) {
                     <span className="font-bold">shadcn/ui sidebar</span>
                     </Link>
                     <nav className="ml-auto flex items-center gap-2">
-                    <Button variant="default" asChild>
-                        <Link href="/login" >
-                            Login
-                        </Link>
-                    </Button>
-                    <Button
-                        variant="default"
-                        asChild
-                        className="bg-white text-black hover:bg-gray-100 border border-gray-300 dark:bg-black dark:text-white dark:hover:bg-zinc-800"
-                        >
-                        <Link href="/register">Register</Link>
-                    </Button>
+                        <ModeToggle/>
+                        <Button variant="default" asChild>
+                            <Link href="/login" >
+                                Login
+                            </Link>
+                        </Button>
+                        <Button
+                            variant="default"
+                            asChild
+                            className="bg-white text-black hover:bg-gray-100 border border-gray-300 dark:bg-black dark:text-white dark:hover:bg-zinc-800"
+                            >
+                            <Link href="/register">Register</Link>
+                        </Button>
                     </nav>
                 </div>
             </header>
@@ -40,7 +42,7 @@ export function ChatPublicLayout({children}:{children: React.ReactNode}) {
             </div>
 
             
-            <footer className="fixed bottom-0 w-full bg-white">
+            <footer className="fixed bottom-0 w-full bg-white dark:bg-black/[0.6]">
                 <div className="flex flex-col items-center justify-center gap-4  md:flex-row">
                     <p className="text-balance text-center text-sm leading-loose text-muted-foreground">
                         Built on top of{" "}
