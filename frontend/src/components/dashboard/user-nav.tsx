@@ -11,7 +11,7 @@ import { logout } from "@/services/authService";
 
 export function UserNav() {
   const {user, setLogout} = useAuthStore();
-
+  console.log("user",user)
   const handleLogOut = async () =>{
     try {
       await logout();
@@ -37,7 +37,7 @@ export function UserNav() {
               >
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="#" alt="Avatar" />
-                  <AvatarFallback className="bg-transparent">{user?.email[0].toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="bg-transparent"> {user?.email?.[0]?.toUpperCase() || "?"} </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
