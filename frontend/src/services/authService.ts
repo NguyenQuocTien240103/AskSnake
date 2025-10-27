@@ -33,3 +33,9 @@ export const logout = async (): Promise<any> => {
     const res = await request.post('auth/logout')
     return res
 }
+
+
+export const prepare = async (payload: any): Promise<any> => {
+    const res = await request.post('auth/prepare', payload)
+    return res
+}

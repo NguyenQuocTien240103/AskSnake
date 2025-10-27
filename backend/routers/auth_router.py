@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Response, Depends
+from fastapi import APIRouter, HTTPException, status, Response, Depends, UploadFile, File, Form
 from pydantics.user import UserLogin, UserRegister  
 from pydantics.token import AccessToken
 from services.AuthService import AuthService

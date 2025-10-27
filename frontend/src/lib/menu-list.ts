@@ -25,7 +25,7 @@ export function getMenuList(pathname: string): Group[] {
       groupLabel: "",
       menus: [
         {
-          href: "/newchat",
+          href: "/",
           label: "New Chat",
           icon: SquarePen,
           submenus: []
@@ -51,13 +51,13 @@ export function getMenuList(pathname: string): Group[] {
           icon: Settings,
           submenus: [
             {
-              href: "/profile",
-              label: "Profile",
+              href: "/settings/account",
+              label: "Account",
               icon: Users,
             },
             {
-              href: "/account",
-              label: "Account",
+              href: "/settings/change-password",
+              label: "Change Password",
               icon: Pen,
             }
           ]
