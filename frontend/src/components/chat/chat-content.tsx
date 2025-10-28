@@ -8,6 +8,7 @@ import { prompt } from "@/services/chatService"
 interface Message {
     sender: "user" | "bot";
     text: string;
+    image?: string; // URL hoặc base64 của hình ảnh
   }
 export function ChatContent() {
     const [showContent, setShowContent] = useState<boolean>(false);
@@ -31,8 +32,15 @@ export function ChatContent() {
       if (isSendDisabled) return;
       setShowContent(true);
         
-      const userMsg: Message = { sender: "user", text: message.trim() };
-      setMessages((prev) => [...prev, userMsg]); // hiển thị tin người dùng ngay
+      // Tạo URL cho hình ảnh để hiển thị
+      const imageUrl = selectedFile ? URL.createObjectURL(selectedFile) : undefined;
+      
+      const userMsg: Message = { 
+        sender: "user", 
+        text: message.trim() || "Uploaded an image",
+        image: imageUrl
+      };
+      setMessages((prev) => [...prev, userMsg]);
   
       const formData = new FormData();
       formData.append("message", message.trim());
@@ -42,10 +50,24 @@ export function ChatContent() {
   
       try {
         const response = await prompt(formData);
+        console.log("Full response:", response); // Debug
+        
+        // Parse response để lấy nội dung phù hợp
+        let responseText = "Unable to process";
+        
+        // Trường hợp 1: Upload ảnh - có data.prediction
+        if (response?.data?.prediction) {
+          responseText = `Identified as: ${response.data.prediction}`;
+        }
+
+        // Trường hợp 2: Hỏi câu hỏi - có data.response_rag
+        else if (response?.data?.response_rag) {
+          responseText = response.data.response_rag;
+        }
   
         const botMsg: Message = {
           sender: "bot",
-          text: response?.reply || JSON.stringify(response), // tuỳ backend trả về
+          text: responseText
         };
   
         setMessages((prev) => [...prev, botMsg]);
@@ -53,6 +75,13 @@ export function ChatContent() {
         setSelectedFile(null);
       } catch (error) {
         console.error("Error sending data:", error);
+        const errorMsg: Message = {
+          sender: "bot",
+          text: "Sorry, there was an error processing your request."
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+        setMessage("");
+        setSelectedFile(null);
       }
     };
       
@@ -68,19 +97,41 @@ export function ChatContent() {
                         </h1>
                     </div>
                 ) : (
-                    <div className="w-5/6 md:max-w-2xl flex flex-col gap-2 pb-22">
+                    <div className="w-5/6 md:max-w-2xl flex flex-col gap-4 pb-22">
                      {messages.map((msg, index) => (
-                        <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div
-                            className={`
-                                p-4 rounded-lg break-words whitespace-pre-wrap max-w-full overflow-hidden
-                                ${msg.sender === 'user'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-200 text-gray-900'}
-                            `}
-                            >
-                            {msg.text}
-                            </div>
+                        <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} mb-3`}>
+                            {msg.image ? (
+                                // Nếu có hình ảnh, hiển thị riêng biệt không có background
+                                <div className="flex flex-col items-end max-w-full">
+                                    <div className="mb-3">
+                                        <img 
+                                            src={msg.image} 
+                                            alt="Uploaded" 
+                                            className="max-w-64 max-h-64 rounded-lg object-cover shadow-md"
+                                        />
+                                    </div>
+                                    {msg.text && msg.text !== "Uploaded an image" && (
+                                        <div className={`
+                                            p-3 rounded-lg break-words whitespace-pre-wrap max-w-full overflow-hidden shadow-sm
+                                            ${msg.sender === 'user'
+                                            ? 'bg-blue-500 text-white rounded-br-sm'
+                                            : 'bg-gray-200 text-gray-900 rounded-bl-sm'}
+                                        `}>
+                                            {msg.text}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                // Nếu không có hình ảnh, hiển thị bình thường
+                                <div className={`
+                                    p-4 rounded-lg break-words whitespace-pre-wrap max-w-xs md:max-w-md overflow-hidden shadow-sm
+                                    ${msg.sender === 'user'
+                                    ? 'bg-blue-500 text-white rounded-br-sm'
+                                    : 'bg-gray-200 text-gray-900 rounded-bl-sm'}
+                                `}>
+                                    <div>{msg.text}</div>
+                                </div>
+                            )}
                         </div>
                         ))}
                     </div>
@@ -106,6 +157,7 @@ export function ChatContent() {
                                 placeholder="Type your message..."
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && !isSendDisabled && handleSend()}
                                 className="flex-1 border-none bg-transparent focus:outline-none text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 "
                             />
                             {selectedFile && (
@@ -142,6 +194,7 @@ export function ChatContent() {
                                 placeholder="Type your message..."
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && !isSendDisabled && handleSend()}
                                 className="flex-1 border-none bg-transparent focus:outline-none text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 "
                             />
                             {selectedFile && (
