@@ -196,4 +196,5 @@ htmlcov/
 .nox/
 .coverage
 .pytest_cache/
-cover/
+cover/*.pyc
+__pycache__/
