@@ -352,7 +352,7 @@ export function ChatContent() {
                         </div>
                     </div>
                 ): (
-                    <div className="fixed bottom-0 flex justify-center mb-10 w-full"> 
+                    <div className="fixed bottom-0 flex justify-center mb-8 w-full"> 
                         <div className="mt-2 flex w-5/6 md:max-w-2xl gap-2 border rounded-lg px-3 py-2 shadow-sm bg-white dark:bg-zinc-900">
                             <Button variant="ghost" size="icon" type="button">
                                 <label className="cursor-pointer">
