@@ -155,14 +155,6 @@ $RECYCLE.BIN/
 *~
 
 # Model weights (large files)
-*.pth
-*.pt
-*.bin
-*.safetensors
-weights/
-models/
-checkpoints/
-
 # Database
 *.db
 *.sqlite
