@@ -77,3 +77,77 @@ async def get_answer(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+
+
+
+
+# from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
+# from services.ImageService import ImageService
+# from services.RagService import RagService
+# import os
+
+# app_router = APIRouter()
+# image_service = ImageService()
+# rag_service = RagService()
+
+# # Kiểm tra xem có index sẵn chưa
+# if not rag_service.load_existing_index():
+#     print("No existing index found. Please run with --ingest first.")
+
+
+# @app_router.post("/prompt", status_code=status.HTTP_200_OK)
+# async def get_answer(
+#     message: str = Form(...),
+#     file: UploadFile = File(None)
+# ):
+#     try:
+#         # Nếu không có file, chỉ trả về message
+#         if not file:
+#             return {
+#                 "message": "No file uploaded",
+#                 "received_message": message
+#             }
+
+#         # Đọc file bytes
+#         file_bytes = await file.read()
+
+#         # Gọi hàm detect
+#         result = await image_service.detect_image(file_bytes)
+
+#         # Nếu không có message thì chỉ trả kết quả ảnh
+#         if not message:
+#             return {
+#                 "message": "Image processed successfully",
+#                 "received_message": message,
+#                 "prediction": result["predicted_class"],
+#                 "probability": result["probability"]
+#             }
+
+#         # Nếu có message, gọi RAG
+#         result_rag = rag_service.query(message)
+
+#         if "error" in result_rag:
+#             return {
+#                 "message": "Image processed successfully",
+#                 "received_message": message,
+#                 "response_rag": result_rag["error"],
+#                 "prediction": result["predicted_class"],
+#                 "probability": result["probability"]
+#             }
+
+#         # Trả về kết quả cả ảnh và RAG
+#         return {
+#             "message": "Image processed successfully",
+#             "received_message": message,
+#             "response_rag": result_rag["response"],
+#             "prediction": result["predicted_class"],
+#             "probability": result["probability"]
+#         }
+
+#     except Exception as e:
+#         print("Error:", e)
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=str(e)
+#         )
