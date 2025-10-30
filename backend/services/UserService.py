@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from datetime import timedelta
 from typing import Annotated
 import os
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 load_dotenv()
 api_key_cookie = APIKeyCookie(name="access_token", auto_error=False)
@@ -19,11 +20,18 @@ class UserService:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        # payload = AuthUtils.verify_token(access_token)
+        
         try:
             payload = AuthUtils.verify_token(access_token)
-        except Exception as e:
+        except ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Access token has expired. Please refresh your token.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except (InvalidTokenError, Exception):
             raise credentials_exception
+            
         email = payload.get("email")
         
         if email is None:

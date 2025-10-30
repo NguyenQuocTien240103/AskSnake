@@ -6,6 +6,7 @@ import { ContentLayout } from "@/components/dashboard/content-layout";
 import { ChatPublicLayout } from '@/components/chat/chat-public-layout';
 import { ChatContent } from '@/components/chat/chat-content';
 import { getUserCurrent } from '@/services/userService';
+import Loading from './loading';
 
 type User = {
   email: string;
@@ -32,7 +33,7 @@ export default function Home() {
   }, []);
 
   if (loading) {
-    return; 
+    return <Loading />;
   }
 
   if (!user || !user.email) {

@@ -7,6 +7,7 @@ from config.database import db
 from dotenv import load_dotenv
 from typing import Annotated
 import os
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 load_dotenv()
 api_key_cookie = APIKeyCookie(name="refresh_token", auto_error=False)
@@ -41,7 +42,25 @@ class AuthService:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        payload = AuthUtils.verify_token(refresh_token)
+        
+        if not refresh_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token is missing",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        try:
+            payload = AuthUtils.verify_token(refresh_token)
+        except ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token has expired. Please login again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except (InvalidTokenError, Exception):
+            raise credentials_exception
+            
         email = payload.get("email")
         
         if email is None:
@@ -73,7 +92,25 @@ class AuthService:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        payload = AuthUtils.verify_token(refresh_token)
+        
+        if not refresh_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token is missing",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        try:
+            payload = AuthUtils.verify_token(refresh_token)
+        except ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token has expired. Please login again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except (InvalidTokenError, Exception):
+            raise credentials_exception
+            
         email = payload.get("email")
         
         if email is None:
