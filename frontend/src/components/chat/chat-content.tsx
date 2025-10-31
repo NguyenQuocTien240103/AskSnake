@@ -5,6 +5,8 @@ import { Paperclip, Send, Folder, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { prompt } from "@/services/chatService"
+import { useRef } from "react";
+
 interface Message {
     sender: "user" | "bot";
     text: string;
@@ -16,6 +18,14 @@ export function ChatContent() {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, [messages]);
+      
   
     const isSendDisabled = !message.trim() && !selectedFile;
   
@@ -135,6 +145,8 @@ export function ChatContent() {
                             )}
                         </div>
                         ))}
+                        {/* Scroll down */}
+                        <div ref={messagesEndRef} />
                         {/* Hiển thị loading khi đang chờ phản hồi */}
                         {isLoading && (
                             <div className="flex justify-start mb-3">
