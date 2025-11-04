@@ -4,6 +4,10 @@ from dotenv import load_dotenv
 import os
 import jwt
 import bcrypt
+<<<<<<< HEAD
+=======
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+>>>>>>> anh
 
 load_dotenv()
 
@@ -16,8 +20,18 @@ class AuthUtils:
         return encoded_jwt
 
     def verify_token(token: str) -> dict:
+<<<<<<< HEAD
         payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
         return payload
+=======
+        try:
+            payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
+            return payload
+        except ExpiredSignatureError:
+            raise ExpiredSignatureError("Token has expired")
+        except InvalidTokenError:
+            raise InvalidTokenError("Invalid token")
+>>>>>>> anh
 
     def hash_password(password: str) -> str:
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

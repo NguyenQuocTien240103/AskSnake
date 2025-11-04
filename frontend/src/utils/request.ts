@@ -28,7 +28,10 @@ request.interceptors.response.use(function (response) {
 
     if (error.response?.status === 401) {
 
-        if (error.config.url?.includes('login') || error.config.url?.includes('register')) {
+        if (error.config.url?.includes('login') || 
+            error.config.url?.includes('register') || 
+            error.config.url?.includes('refresh-token') ||
+            originalRequest._retry) {
             return Promise.reject(error); 
         }
 
@@ -37,10 +40,11 @@ request.interceptors.response.use(function (response) {
         try {
             await request.post("/auth/refresh-token");
             return request(originalRequest);
-        } catch (error) {
+        } catch (refreshError) {
             console.error("Refresh token expired. Redirecting to login...");
             // window.alert("session is expired")
             // window.location.href = '/login';
+            return Promise.reject(refreshError);
         }
 
     }
