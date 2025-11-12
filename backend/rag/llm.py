@@ -12,13 +12,14 @@ class GeminiLLM:
         self.client = genai.Client(api_key=RagConfig.GOOGLE_API_KEY)
         self.model = RagConfig.LLM_MODEL
     
-    def generate_response(self, query: str, context: List[str]) -> str:
+    def generate_response(self, query: str, context: List[str], custom_prompt_template: str = None) -> str:
         """
         Generate response using query and retrieved context
         
         Args:
             query: User's question
             context: List of relevant text chunks from vector search
+            custom_prompt_template: Custom prompt template with {context} and {query} placeholders
             
         Returns:
             Generated response string
@@ -26,8 +27,12 @@ class GeminiLLM:
         # Prepare context
         context_text = "\n\n".join([f"Context {i+1}: {text}" for i, text in enumerate(context)])
         
-        # Create prompt
-        prompt = f"""Consider yourself a snake expert to give professional answers, answer users like an expert and not answer like you rely on this or that information to give results even though you have to get results from context to answer
+        # Use custom prompt if provided, otherwise use default
+        if custom_prompt_template:
+            prompt = custom_prompt_template.format(context=context_text, query=query)
+        else:
+            # Default prompt
+            prompt = f"""Consider yourself a snake expert to give professional answers, answer users like an expert and not answer like you rely on this or that information to give results even though you have to get results from context to answer
 
 Based on the following context information, please answer the question accurately and comprehensively.
 
@@ -38,7 +43,22 @@ Question: {query}
 
 Please provide a detailed answer based on the context provided. If the context doesn't contain enough information to answer the question, please mention that.
 
-Position yourself as a snake expert, give the user some more questions related to the current question so the user can build on that and then continue saying what question you want me to help you answer"""
+Position yourself as a snake expert, give the user some more questions related to the current question so the user can build on that and then continue saying what question you want me to help you answer
+
+With the question structure including the main content as follows, 3 to 5 questions can be randomly given to users for reference.
+-Scientific name and common name
+-Taxonomy
+-Morphological characteristics
+-Toxicology
+-Predation behavior
+-Behavior and ecology
+-Geographic distribution and habitat
+-Reproduction
+-Conservation status
+-Research value
+-Human relevance
+-Symptoms when bitten
+-How to handle"""
 
         try:
             contents = [

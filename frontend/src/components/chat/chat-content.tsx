@@ -71,9 +71,14 @@ export function ChatContent() {
           console.log("Full response:", response);
       
           let responseText = "Unable to process";
-          if (response?.data?.prediction) {
+          if (response?.data?.prediction && response?.data?.description) {
+            // Image with RAG description
+            responseText = `**${response.data.prediction}**\n\n${response.data.description}`;
+          } else if (response?.data?.prediction) {
+            // Image only (fallback)
             responseText = `Identified as: ${response.data.prediction}`;
           } else if (response?.data?.response_rag) {
+            // Text query
             responseText = response.data.response_rag;
           }
       

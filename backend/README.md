@@ -2,7 +2,9 @@
 
 - Create a Virtual Enviroment: python -m venv .venv
 
-- Activate the Virtual Enviroment: .venv\Scripts\Activate.ps1
+- Activate the Virtual Enviroment (macOS/Linux): source .venv/bin/activate
+
+- Activate the Virtual Enviroment (Windows): .venv\Scripts\Activate.ps1
 
 - Upgrade pip: python -m pip install --upgrade pip
 

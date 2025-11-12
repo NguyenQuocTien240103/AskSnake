@@ -16,17 +16,32 @@ async def get_answer(
     file: UploadFile = File(None)
 ):
     try:
-        # Trường hợp: chỉ có file
+        # Trường hợp 1: Chỉ có file (upload ảnh rắn) -> Mô tả tổng quan
         if file and not message:
             file_bytes = await file.read()
             result = await image_service.detect_image(file_bytes)
+            snake_name = result["predicted_class"]
+            
+            # Query RAG với prompt mô tả (được tạo trong RagService)
+            result_rag = rag_service.query_with_image(snake_name=snake_name)
+            
+            if "error" in result_rag:
+                return {
+                    "message": "Image processed successfully but RAG query failed",
+                    "prediction": snake_name,
+                    "probability": result["probability"],
+                    "description": "Không tìm thấy thông tin chi tiết về loài rắn này."
+                }
+            
             return {
-                "message": "Image processed successfully",
-                "prediction": result["predicted_class"],
-                "probability": result["probability"]
+                "message": "Image and RAG processed successfully",
+                "prediction": snake_name,
+                "probability": result["probability"],
+                "description": result_rag["response"],
+                "context_used": result_rag.get("num_context_chunks", 0)
             }
 
-        # Trường hợp: chỉ có message
+        # Trường hợp 2: Chỉ có message (không có ảnh) -> Query thông thường
         elif message and not file:
             result_rag = rag_service.query(message)
             if "error" in result_rag:
@@ -41,27 +56,34 @@ async def get_answer(
                 "response_rag": result_rag["response"]
             }
 
-        # Trường hợp: có cả file và message
+        # Trường hợp 3: Có cả file và message -> Trả lời câu hỏi cụ thể về con rắn
         elif file and message:
             file_bytes = await file.read()
             result = await image_service.detect_image(file_bytes)
-            result_rag = rag_service.query(message)
+            snake_name = result["predicted_class"]
+            
+            # Query RAG với prompt câu hỏi (được tạo trong RagService)
+            result_rag = rag_service.query_with_image(
+                snake_name=snake_name, 
+                user_question=message
+            )
 
             if "error" in result_rag:
                 return {
-                    "message": "Image and RAG processed with partial success",
+                    "message": "Image processed but RAG query failed",
                     "received_message": message,
-                    "response_rag": result_rag["error"],
-                    "prediction": result["predicted_class"],
-                    "probability": result["probability"]
+                    "prediction": snake_name,
+                    "probability": result["probability"],
+                    "response_rag": result_rag.get("error", "Không tìm thấy thông tin")
                 }
 
             return {
                 "message": "Image and RAG processed successfully",
                 "received_message": message,
-                "response_rag": result_rag["response"],
-                "prediction": result["predicted_class"],
-                "probability": result["probability"]
+                "prediction": snake_name,
+                "probability": result["probability"],
+                "description": result_rag["response"],  # Đổi từ response_rag → description
+                "context_used": result_rag.get("num_context_chunks", 0)
             }
 
         # Trường hợp không có gì

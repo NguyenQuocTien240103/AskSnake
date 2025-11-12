@@ -6,10 +6,7 @@ import { ContentLayout } from "@/components/dashboard/content-layout";
 import { ChatPublicLayout } from '@/components/chat/chat-public-layout';
 import { ChatContent } from '@/components/chat/chat-content';
 import { getUserCurrent } from '@/services/userService';
-<<<<<<< HEAD
-=======
 import Loading from './loading';
->>>>>>> anh
 
 type User = {
   email: string;
@@ -36,11 +33,7 @@ export default function Home() {
   }, []);
 
   if (loading) {
-<<<<<<< HEAD
-    return; 
-=======
     return <Loading />;
->>>>>>> anh
   }
 
   if (!user || !user.email) {
