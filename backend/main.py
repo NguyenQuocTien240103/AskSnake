@@ -5,6 +5,7 @@ from config.database import client, db
 from routers.auth_router import app_router as auth_router
 from routers.user_router import app_router as user_router
 from routers.chat_router import app_router as chat_router
+from routers.chat_router_v2 import router as chat_router_v2
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,4 +21,5 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(user_router, prefix="/user", tags=["user"])
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
+app.include_router(chat_router_v2)  # Chat API v2 với full RAG + Memory
 

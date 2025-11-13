@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from rag.embeddings import EmbeddingGenerator
 from rag.vector_store import FAISSVectorStore
 from rag.qdrant_vector_store import QdrantVectorStore
@@ -156,13 +156,21 @@ class RagService:
             print("No existing index found.")
         return success
     
-    def query(self, question: str, top_k: int = RagConfig.TOP_K_RESULTS) -> Dict[str, Any]:
+    def query(
+        self, 
+        question: str, 
+        top_k: int = RagConfig.TOP_K_RESULTS,
+        chat_history: List[Dict[str, Any]] = None,
+        summary: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Query the RAG pipeline with optional re-ranking
+        Query the RAG pipeline with optional re-ranking and chat history
         
         Args:
             question: User's question
             top_k: Number of top similar chunks to retrieve (overridden if re-ranking is enabled)
+            chat_history: Chat history for context-aware responses (optional)
+            summary: Conversation summary (optional)
             
         Returns:
             Dictionary containing the response and metadata
@@ -238,9 +246,19 @@ class RagService:
             final_scores = final_scores[:final_k]
             rerank_info = {"reranking_used": False}
         
-        # Generate response using LLM
+        # Generate response using LLM (with or without history)
         print("Generating response...")
-        response = self.llm.generate_response(question, final_texts)
+        if chat_history:
+            # Use history-aware generation
+            response = self.llm.generate_response_with_history(
+                query=question,
+                context=final_texts,
+                chat_history=chat_history,
+                summary=summary
+            )
+        else:
+            # Standard generation without history
+            response = self.llm.generate_response(question, final_texts)
         
         result = {
             "response": response,
@@ -253,15 +271,24 @@ class RagService:
         print("Query processed successfully!")
         return result
     
-    def query_with_image(self, snake_name: str, user_question: str = None, top_k: int = RagConfig.TOP_K_RESULTS) -> Dict[str, Any]:
+    def query_with_image(
+        self, 
+        snake_name: str, 
+        user_question: str = None, 
+        top_k: int = RagConfig.TOP_K_RESULTS,
+        chat_history: List[Dict[str, Any]] = None,
+        summary: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Query RAG với context từ image recognition
+        Query RAG với context từ image recognition + chat history
         Tự động tạo prompt phù hợp dựa trên có hay không có câu hỏi từ user
         
         Args:
             snake_name: Tên loài rắn từ image recognition
             user_question: Câu hỏi từ người dùng (optional)
             top_k: Number of top similar chunks to retrieve
+            chat_history: Chat history for context-aware responses (optional)
+            summary: Conversation summary (optional)
             
         Returns:
             Dictionary containing the response and metadata
@@ -278,17 +305,32 @@ class RagService:
             llm_prompt_template = RagConfig.LLM_SNAKE_QUESTION_TEMPLATE
             print(f"🖼️💬 Image + Question mode - Question about {snake_name}: {user_question}")
         
-        # Query với prompt đã được tạo và LLM template tương ứng
-        return self.query_with_custom_prompt(search_query, llm_prompt_template, top_k)
+        # Query với prompt đã được tạo, LLM template tương ứng, VÀ history
+        return self.query_with_custom_prompt(
+            question=search_query, 
+            llm_prompt_template=llm_prompt_template, 
+            top_k=top_k,
+            chat_history=chat_history,
+            summary=summary
+        )
     
-    def query_with_custom_prompt(self, question: str, llm_prompt_template: str, top_k: int = RagConfig.TOP_K_RESULTS) -> Dict[str, Any]:
+    def query_with_custom_prompt(
+        self, 
+        question: str, 
+        llm_prompt_template: str, 
+        top_k: int = RagConfig.TOP_K_RESULTS,
+        chat_history: List[Dict[str, Any]] = None,
+        summary: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Query RAG pipeline với custom LLM prompt template
+        Query RAG pipeline với custom LLM prompt template + chat history
         
         Args:
             question: Search query để tìm context trong vector store
             llm_prompt_template: Template cho LLM với placeholders {context} và {query}
             top_k: Number of top similar chunks to retrieve
+            chat_history: Chat history for context-aware responses (optional)
+            summary: Conversation summary (optional)
             
         Returns:
             Dictionary containing the response and metadata
@@ -358,9 +400,25 @@ class RagService:
             final_scores = final_scores[:final_k]
             rerank_info = {"reranking_used": False}
         
-        # Generate response using LLM với custom prompt template
+        # Generate response using LLM với custom prompt template (with or without history)
         print(f"Generating response with custom prompt template...")
-        response = self.llm.generate_response(question, final_texts, custom_prompt_template=llm_prompt_template)
+        
+        if chat_history:
+            # Use history-aware generation with custom template
+            response = self.llm.generate_response_with_history(
+                query=question,
+                context=final_texts,
+                chat_history=chat_history,
+                summary=summary,
+                custom_prompt_template=llm_prompt_template
+            )
+        else:
+            # Standard generation with custom template
+            response = self.llm.generate_response(
+                question=question, 
+                context_texts=final_texts, 
+                custom_prompt_template=llm_prompt_template
+            )
         
         result = {
             "response": response,
