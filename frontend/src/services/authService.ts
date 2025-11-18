@@ -11,6 +11,12 @@ type RegisterType = {
     confirm_password: string,
 }
 
+type UpdatePasswordType = {
+    old_password: string, 
+    new_password: string,
+    confirm_new_password: string,
+}
+
 export const login = async ({email, password} : LoginType): Promise<any> => {
     const res = await request.post('auth/login',{
         email,
@@ -34,6 +40,14 @@ export const logout = async (): Promise<any> => {
     return res
 }
 
+export const updatePassword = async ({old_password, new_password, confirm_new_password} : UpdatePasswordType): Promise<any> => {
+    const res = await request.post('auth/update-password',{
+        old_password,
+        new_password,
+        confirm_new_password
+    })
+    return res
+}
 
 export const prepare = async (payload: any): Promise<any> => {
     const res = await request.post('auth/prepare', payload)

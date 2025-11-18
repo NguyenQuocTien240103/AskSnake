@@ -1,24 +1,12 @@
 'use client'
 
-import { useEffect } from "react";
 import { Navbar } from "@/components/dashboard/navbar";
-import { useAuthStore } from "@/stores/use-auth";
-import { Footer } from "@/components/dashboard/footer";
-import { cn } from "@/lib/utils";
-
 interface ContentLayoutProps {
-  user: any;
   title: string;
   children: React.ReactNode;
 }
 
-export function ContentLayout({ user, title, children }: ContentLayoutProps) {
-  const {setLogin} = useAuthStore();
-
-  useEffect(() => {
-    setLogin(user);
-  }, [user, setLogin]);
-
+export function ContentLayout({ title, children }: ContentLayoutProps) {
   return (
     <div className="h-full flex flex-col">
       <Navbar title={title} />

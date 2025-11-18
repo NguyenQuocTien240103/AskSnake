@@ -1,14 +1,7 @@
 import Link from "next/link";
 
 import { ContentLayout } from "@/components/dashboard/content-layout";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 export default function CategoriesPage({ params }: { params: { id: string } }) {
   return (

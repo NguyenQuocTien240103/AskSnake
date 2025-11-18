@@ -1,46 +1,35 @@
 'use client'
 
-import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/layout';
+import { useState, useEffect } from 'react';
 import { ContentLayout } from "@/components/dashboard/content-layout";
 import { ChatPublicLayout } from '@/components/chat/chat-public-layout';
 import { ChatContent } from '@/components/chat/chat-content';
 import { getUserCurrent } from '@/services/userService';
-<<<<<<< HEAD
-=======
+import { useAuthStore } from "@/stores/use-auth";
 import Loading from './loading';
->>>>>>> anh
-
-type User = {
-  email: string;
-}
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+  const {user, setLogin, setLogout} = useAuthStore();
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await getUserCurrent();
-        setUser(res.data);
+        setLogin(res.data)
       } catch (error) {
         console.error(error);
-        setUser(null); 
+        setLogout()
       } finally {
         setLoading(false);
       }
     };
-
     fetchUser();
   }, []);
 
   if (loading) {
-<<<<<<< HEAD
-    return; 
-=======
     return <Loading />;
->>>>>>> anh
   }
 
   if (!user || !user.email) {
@@ -53,7 +42,7 @@ export default function Home() {
 
   return (
     <DashboardLayout>
-      <ContentLayout user={user} title="AskSnake">
+      <ContentLayout title="AskSnake">
         <ChatContent />
       </ContentLayout>
     </DashboardLayout>

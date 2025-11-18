@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +12,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useState } from "react"
 import { login } from "@/services/authService"
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'
 
 interface LoginFormProps extends React.ComponentProps<"div"> {
   onSuccess?: () => void
@@ -19,13 +19,13 @@ interface LoginFormProps extends React.ComponentProps<"div"> {
 
 export function LoginForm({ className, onSuccess, ...props }: LoginFormProps) {
   const router = useRouter();
-  const [ error, setError ] = useState<String>('')
+  const [error, setError] = useState("")
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginSchemaType>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
   })
 
