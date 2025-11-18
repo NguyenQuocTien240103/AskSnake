@@ -122,4 +122,18 @@ class AuthService:
             raise credentials_exception
             
         return refresh_token
+    async def update_password(current_user: dict, old_password: str, new_password: str):
+
+        if not AuthUtils.verify_password(old_password, current_user['password']):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Update password is fail",
+            )
+        
+        hashed_new_password = AuthUtils.hash_password(new_password)
+        result = await db["users"].update_one(
+            {"email": current_user['email']},
+            {"$set": {"password": hashed_new_password}}
+        )
+        return result.modified_count
     

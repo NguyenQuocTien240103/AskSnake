@@ -11,7 +11,6 @@ import { logout } from "@/services/authService";
 
 export function UserNav() {
   const {user, setLogout} = useAuthStore();
-  console.log("user",user)
   const handleLogOut = async () =>{
     try {
       await logout();

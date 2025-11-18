@@ -2,12 +2,15 @@ from pydantics.user import UserBase
 from fastapi import APIRouter, HTTPException, Depends, status
 from services.UserService import UserService
 from typing import Annotated  
+from pydantics.user import UserBase
+
 app_router = APIRouter()
 
 @app_router.get("/me",status_code=status.HTTP_200_OK)
-async def get_users_me(current_user: Annotated[UserBase, Depends(UserService.get_current_user)]):
+async def get_users_me(current_user: Annotated[dict, Depends(UserService.get_current_user)]):
     try:
-        return current_user
+        # print(current_user)
+        return UserBase(email=current_user['email'])
     except HTTPException as e:
         raise e
     except Exception as e:

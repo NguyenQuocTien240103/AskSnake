@@ -8,21 +8,32 @@ import { useAuthStore } from "@/stores/use-auth";
 import { useEffect, useState } from "react";
 import { getUserCurrent } from '@/services/userService';
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from 'next/navigation'
 
 export default function AccountPage() {
-  const { user, setLogin } = useAuthStore();
-  const [loading, setLoading] = useState<boolean>(true);
+  const router = useRouter();
+  const {setLogin, setLogout} = useAuthStore();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await getUserCurrent();
         setLogin(res.data)
-      } catch (error) {
-        console.error(error);
-      } finally {
         setLoading(false)
-      }
+      } catch (error: any) {
+        console.error(error);
+        
+        if(error.response?.status === 401){
+          setLogout();
+          router.push("/login")
+          return;
+        }
+
+      } 
+      // finally {
+      //   setLoading(false)
+      // }
     };
     fetchUser();
   }, []);
@@ -37,7 +48,7 @@ export default function AccountPage() {
   }
 
   return (
-    <ContentLayout title="Change Password" user={user}>
+    <ContentLayout title="Change Password">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

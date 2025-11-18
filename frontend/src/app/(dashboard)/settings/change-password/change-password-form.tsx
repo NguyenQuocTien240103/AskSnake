@@ -1,7 +1,6 @@
 'use client'
 
-import * as z from "zod"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,47 +8,46 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Save, Loader2, CheckCircle } from "lucide-react"
-
-const passwordSchema = z.object({
-  currentPassword: z.string().min(6, "Password must be at least 6 characters"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string()
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type PasswordFormValues = z.infer<typeof passwordSchema>
+import { updatePasswordSchema, UpdatePasswordSchemaType } from "./schema"
+import { updatePassword } from "@/services/authService"
 
 export function ChangePasswordForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [message, setMessage] = useState("")
+  const [isError, setIsError] = useState(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // Clear timeout
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordSchema),
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<UpdatePasswordSchemaType>({
+    resolver: zodResolver(updatePasswordSchema),
   })
 
-  const onSubmit = async (data: PasswordFormValues) => {
+  const onSubmit = async (data: UpdatePasswordSchemaType) => {
     setIsLoading(true)
     setSaveSuccess(false)
+    setIsError(false)
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      console.log("Password data:", data)
-      
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
+      const res = await updatePassword(data)
+      setMessage(res.data.message)
+      setIsError(false)
       reset()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating password:", error)
+      setIsError(true)
+      setMessage(error.response.data.detail)
     } finally {
       setIsLoading(false)
+      setSaveSuccess(true)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => setSaveSuccess(false), 3000)
+
     }
   }
 
@@ -76,56 +74,56 @@ export function ChangePasswordForm() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="currentPassword" className="text-sm font-medium">
+              <Label htmlFor="old_password" className="text-sm font-medium">
                 Current Password
               </Label>
               <div className="relative group">
                 <Input
-                  id="currentPassword"
+                  id="old_password"
                   type="password"
                   placeholder="Enter your current password"
                   className="pl-3 h-11 transition-all focus:ring-2 focus:ring-primary/20"
-                  {...register("currentPassword")}
+                  {...register("old_password")}
                 />
               </div>
-              {errors.currentPassword && (
-                <p className="text-sm text-destructive">{errors.currentPassword.message}</p>
+              {errors.old_password && (
+                <p className="text-sm text-destructive">{errors.old_password.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="newPassword" className="text-sm font-medium">
+              <Label htmlFor="new_password" className="text-sm font-medium">
                 New Password
               </Label>
               <div className="relative group">
                 <Input
-                  id="newPassword"
+                  id="new_password"
                   type="password"
                   placeholder="Enter your new password"
                   className="pl-3 h-11 transition-all focus:ring-2 focus:ring-primary/20"
-                  {...register("newPassword")}
+                  {...register("new_password")}
                 />
               </div>
-              {errors.newPassword && (
-                <p className="text-sm text-destructive">{errors.newPassword.message}</p>
+              {errors.new_password && (
+                <p className="text-sm text-destructive">{errors.new_password.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium">
+              <Label htmlFor="confirm_new_password" className="text-sm font-medium">
                 Confirm New Password
               </Label>
               <div className="relative group">
                 <Input
-                  id="confirmPassword"
+                  id="confirm_new_password"
                   type="password"
                   placeholder="Confirm your new password"
                   className="pl-3 h-11 transition-all focus:ring-2 focus:ring-primary/20"
-                  {...register("confirmPassword")}
+                  {...register("confirm_new_password")}
                 />
               </div>
-              {errors.confirmPassword && (
-                <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+              {errors.confirm_new_password && (
+                <p className="text-sm text-destructive">{errors.confirm_new_password.message}</p>
               )}
             </div>
 
@@ -155,8 +153,10 @@ export function ChangePasswordForm() {
               </Button>
               
               {saveSuccess && (
-                <p className="text-sm text-green-600 dark:text-green-500 animate-in fade-in-50">
-                  Your password has been updated successfully!
+                <p className={`text-sm animate-in fade-in-50 ${
+                  isError ? 'text-destructive' : 'text-green-600 dark:text-green-500'
+                }`}>
+                  {message}
                 </p>
               )}
             </div>

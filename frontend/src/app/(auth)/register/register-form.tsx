@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,28 +12,27 @@ import { useState } from "react"
 import { registerSchema, RegisterSchemaType } from "@/app/(auth)/register/schema"
 import { register as registerUser } from "@/services/authService"
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'
 
 interface RegisterFormProps extends React.ComponentProps<"div"> {
   onSuccess?: () => void
 }
 
 export function RegisterForm({ className, onSuccess, ...props }: RegisterFormProps) {
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
   const router = useRouter();
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<RegisterSchemaType>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: '',
-      password: '',
-      confirm_password: '',
+      email: "",
+      password: "",
+      confirm_password: "",
     },
   })
 
   const onSubmit = async (data: RegisterSchemaType) => {
     try {
-      setError('')
+      setError("")
       await registerUser(data)
       router.push("/login");
 

@@ -13,7 +13,7 @@ load_dotenv()
 api_key_cookie = APIKeyCookie(name="access_token", auto_error=False)
 
 class UserService:
-    async def get_current_user(access_token: Annotated[str, Depends(api_key_cookie)]) -> UserBase:
+    async def get_current_user(access_token: Annotated[str, Depends(api_key_cookie)]) -> dict:
         # print("access_token",access_token)
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -42,4 +42,5 @@ class UserService:
         if user is None:
             raise credentials_exception
             
-        return UserBase(email=user['email'])
+        # return UserBase(email=user['email'])
+        return user
