@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from typing import Annotated
 import os
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from bson import ObjectId
 
 load_dotenv()
 api_key_cookie = APIKeyCookie(name="refresh_token", auto_error=False)
@@ -136,4 +137,28 @@ class AuthService:
             {"$set": {"password": hashed_new_password}}
         )
         return result.modified_count
+
+    async def get_history(user_id: str):
+        # cursor = db["chat_history"].find({"user_id": user_id})
+        # docs = await cursor.to_list(length=None)
+
+        docs = await db["chat_history"].find({"user_id": ObjectId(user_id)}).to_list(length=None)
+
+        result = [{"href": "/chats/" + str(d["_id"]), "label": d["title"]} for d in docs]
+        return result
+
+    async def get_history_detail(user_id: str, chat_id: str):
+        doc = await db["chat_history"].find_one({
+            "_id": ObjectId(chat_id),
+            "user_id": ObjectId(user_id)
+        })
+        if not doc:
+            return None   
+
+        return {
+            "chat_id": str(doc["_id"]),
+            "messages": doc.get("messages", [])
+        }
+
+
     

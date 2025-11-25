@@ -53,3 +53,15 @@ export const prepare = async (payload: any): Promise<any> => {
     const res = await request.post('auth/prepare', payload)
     return res
 }
+
+export const show_list_history_user = async (): Promise<any> => {
+    const res = await request.get('auth/show_history')
+    return res
+}
+
+export const show_detail_history_user = async (chat_id: string): Promise<any> => {
+    const res = await request.get("auth/show_history_detail", {
+        params: { chat_id }
+    });
+    return res;
+};

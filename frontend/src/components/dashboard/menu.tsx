@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { Ellipsis, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
-
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getMenuList } from "@/lib/menu-list";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollapseMenuButton } from "@/components/dashboard/collapse-menu-button";
 import { Tooltip, TooltipTrigger,  TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { show_list_history_user } from "@/services/authService"
 
 interface MenuProps {
   isOpen: boolean | undefined;
@@ -18,17 +19,30 @@ interface MenuProps {
 export function Menu({ isOpen }: MenuProps) {
   const pathname = usePathname();
   const menuList = getMenuList(pathname);
-  
-  const submenus_chat: any =  [
-    {
-      href: "/profile",
-      label: "Việt Nam có những loại rắn nào?",
-    },
-    {
-      href: "/account",
-      label: "Rắn hổ mang có độc không?",
-    }
-  ]
+  const [submenus_chat, setSubmenus_chat] = useState<any>([]);
+  // const submenus_chat: any =  [
+  //   {
+  //     href: "/chats/123",
+  //     label: "Việt Nam có những loại rắn nào?",
+  //   },
+  //   {
+  //     href: "/chats/456",
+  //     label: "Rắn hổ mang có độc không?",
+  //   }
+  // ]
+
+  useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const response = await show_list_history_user();
+          setSubmenus_chat(response.data.history);
+        }
+        catch (error) {
+          console.error("Error fetching chat history:", error);
+        }
+      };
+      fetchData();   
+  }, []);
 
   return (
     <ScrollArea className="[&>div>div[style]]:!block">

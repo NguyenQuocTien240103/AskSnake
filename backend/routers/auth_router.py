@@ -56,3 +56,27 @@ async def update_password(payload: UserUpdatePassword, current_user: Annotated[d
 async def get_new_access_token(response: Response, token: Annotated[AccessToken, Depends(AuthService.get_access_token)]):
     response.set_cookie(key="access_token", value = token.access_token, httponly=True)
     return {"message":  "Access token refreshed", "access_token": token.access_token}
+
+@app_router.get("/show_history", status_code=status.HTTP_200_OK)
+async def get_history(current_user: Annotated[dict, Depends(UserService.get_current_user)]):
+    user_id = current_user['_id']
+    try:
+        history = await AuthService.get_history(user_id)
+        return {"message": "History retrieved successfully", "history": history}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+@app_router.get("/show_history_detail", status_code=status.HTTP_200_OK)
+async def get_history(current_user: Annotated[dict, Depends(UserService.get_current_user)], chat_id: str):
+    user_id = current_user['_id']
+    try:
+        history_detail = await AuthService.get_history_detail(user_id,chat_id)
+        return {"message": "History retrieved successfully", "history": history_detail}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
