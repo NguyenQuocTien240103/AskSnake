@@ -7,10 +7,11 @@ from routers.user_router import app_router as user_router
 # from routers.chat_router import app_router as chat_router
 from routers.chat_router_test import app_router as chat_router_test
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
-
-app.add_middleware(
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.add_middleware( 
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,

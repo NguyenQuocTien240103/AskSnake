@@ -8,8 +8,8 @@ import { prompt } from "@/services/chatService"
 import { useRef } from "react";
 
 interface Message {
-    sender: "user" | "bot";
-    text: string;
+    role: "human" | "bot";
+    content: string;
     image?: string; // URL hoặc base64 của hình ảnh
   }
 export function ChatContent() {
@@ -18,6 +18,7 @@ export function ChatContent() {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [chatId, setChatId] = useState<string>("");
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -46,8 +47,8 @@ export function ChatContent() {
         // Hiển thị tin nhắn người dùng ngay lập tức
         const imageUrl = selectedFile ? URL.createObjectURL(selectedFile) : undefined;
         const userMsg: Message = { 
-          sender: "user", 
-          text: message.trim() || "Uploaded an image",
+          role: "human", 
+          content: message.trim() || "Uploaded an image",
           image: imageUrl
         };
         setMessages((prev) => [...prev, userMsg]);
@@ -58,36 +59,40 @@ export function ChatContent() {
 
         // Bật trạng thái loading
         setIsLoading(true);
-      
         // Chuẩn bị formData gửi lên server
         const formData = new FormData();
         formData.append("message", message.trim());
         if (selectedFile) {
-          formData.append("file", selectedFile);
+            formData.append("file", selectedFile);
+        }
+        if(chatId) {
+            formData.append("chat_id", chatId);
         }
       
         try {
           const response = await prompt(formData);
           console.log("Full response:", response);
+          if(!chatId) setChatId(response.data.chat_id);
       
-          let responseText = "Unable to process";
-          if (response?.data?.prediction) {
-            responseText = `Identified as: ${response.data.prediction}`;
-          } else if (response?.data?.response_rag) {
-            responseText = response.data.response_rag;
-          }
+        //   let responseText = "Unable to process";
+        //   if (response?.data?.prediction) {
+        //     responseText = `Identified as: ${response.data.prediction}`;
+        //   } else if (response?.data?.response_rag) {
+        //     responseText = response.data.response_rag;
+        //   }
+          let responseText = response.data.message || "Unable to process";
       
           const botMsg: Message = {
-            sender: "bot",
-            text: responseText
+            role: "bot",
+            content: responseText
           };
       
           setMessages((prev) => [...prev, botMsg]);
         } catch (error) {
           console.error("Error sending data:", error);
           const errorMsg: Message = {
-            sender: "bot",
-            text: "Sorry, there was an error processing your request."
+            role: "bot",
+            content: "Sorry, there was an error processing your request."
           };
           setMessages((prev) => [...prev, errorMsg]);
         } finally {
@@ -110,7 +115,7 @@ export function ChatContent() {
                 ) : (
                     <div className="w-5/6 md:max-w-2xl flex flex-col gap-4 pb-22">
                      {messages.map((msg, index) => (
-                        <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} mb-3`}>
+                        <div key={index} className={`flex ${msg.role === 'human' ? 'justify-end' : 'justify-start'} mb-3`}>
                             {msg.image ? (
                                 // Nếu có hình ảnh, hiển thị riêng biệt không có background
                                 <div className="flex flex-col items-end max-w-full">
@@ -121,14 +126,14 @@ export function ChatContent() {
                                             className="max-w-64 max-h-64 rounded-lg object-cover shadow-md"
                                         />
                                     </div>
-                                    {msg.text && msg.text !== "Uploaded an image" && (
+                                    {msg.content && msg.content !== "Uploaded an image" && (
                                         <div className={`
                                             p-3 rounded-lg break-words whitespace-pre-wrap max-w-full overflow-hidden shadow-sm
-                                            ${msg.sender === 'user'
+                                            ${msg.role === 'human'
                                             ? 'bg-blue-500 text-white rounded-br-sm'
                                             : 'bg-gray-200 text-gray-900 rounded-bl-sm'}
                                         `}>
-                                            {msg.text}
+                                            {msg.content}
                                         </div>
                                     )}
                                 </div>
@@ -136,11 +141,11 @@ export function ChatContent() {
                                 // Nếu không có hình ảnh, hiển thị bình thường
                                 <div className={`
                                     p-4 rounded-lg break-words whitespace-pre-wrap max-w-xs md:max-w-md overflow-hidden shadow-sm
-                                    ${msg.sender === 'user'
+                                    ${msg.role === 'human'
                                     ? 'bg-blue-500 text-white rounded-br-sm'
                                     : 'bg-gray-200 text-gray-900 rounded-bl-sm'}
                                 `}>
-                                    <div>{msg.text}</div>
+                                    <div>{msg.content}</div>
                                 </div>
                             )}
                         </div>

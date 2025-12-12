@@ -1,4 +1,5 @@
 import {BadgeQuestionMark, Tag, Pen, Users, Settings, Bookmark, SquarePen, LayoutGrid, LucideIcon } from "lucide-react";
+import { is } from "zod/v4/locales";
 type Submenu = {
   href: string;
   label: string;
@@ -11,6 +12,7 @@ type Menu = {
   label: string;
   active?: boolean;
   icon: LucideIcon;
+  isScrollDown?: boolean;
   submenus?: Submenu[];
 };
 
@@ -39,6 +41,7 @@ export function getMenuList(pathname: string): Group[] {
           href: "",
           label: "Chats",
           icon: Bookmark,
+          isScrollDown: true,
         },  
       ]
     },

@@ -26,12 +26,15 @@ class ChatHistoryService:
         except Exception as e:
             print(f"Error getting chat: {e}")
             return None
-    async def add_message(chat_id: str,  role: str,  content: str,  metadata: Optional[dict] = None) -> bool:
+    async def add_message(chat_id: str,  role: str,  content: str, file_name: Optional[str] = None, metadata: Optional[dict] = None) -> bool:
         try:
+            print("file_name=",file_name)
+
             message = {
                 "role": role,
                 "content": content,
                 "timestamp": datetime.utcnow(),
+                "file_name": file_name,
                 "metadata": metadata or {}
             }
             

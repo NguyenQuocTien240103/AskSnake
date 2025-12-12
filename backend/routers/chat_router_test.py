@@ -1,28 +1,35 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends
+import os
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends, Query
 from typing import Annotated  
 from services.UserService import UserService
-# from services.RagService import RagService # mở đoạn này ra
-# from services.ImageService import ImageService # mở đoạn này ra
-# from config.rag_config import RagConfig # mở đoạn này ra
+from services.RagService import RagService # mở đoạn này ra
+from services.ImageService import ImageService # mở đoạn này ra
+from config.rag_config import RagConfig # mở đoạn này ra
 from services.ChatHistoryService import ChatHistoryService
 from pydantics.chat import ChatRequest, ChatResponse
+from PIL import Image
+from io import BytesIO
+import uuid
+from datetime import datetime
+
 app_router = APIRouter()
 
-# rag_service = RagService() # mở đoạn này ra
-# image_service = ImageService() # mở đoạn này ra
+rag_service = RagService() # mở đoạn này ra
+image_service = ImageService() # mở đoạn này ra
 
 
 # Load existing RAG index
-# if not rag_service.load_existing_index(): # mở đoạn này ra
-#     print("Warning: No existing RAG index found.") # mở đoạn này ra
+if not rag_service.load_existing_index(): # mở đoạn này ra
+    print("Warning: No existing RAG index found.") # mở đoạn này ra
 
 # Cấu hình
 MAX_MESSAGES_BEFORE_SUMMARY = 4  # Tự động tóm tắt sau 4 messages (2 turns: user + AI)
 RECENT_MESSAGES_COUNT = 3  # Lấy 3 messages gần nhất (giảm để tiết kiệm context)
 
 @app_router.post("/prompt",response_model=ChatResponse, status_code=status.HTTP_200_OK)
-async def get_answer(current_user: Annotated[dict, Depends(UserService.get_current_user)], chat_id: str | None = None, message: str = Form(None), file: UploadFile = File(None)):
+async def get_answer(current_user: Annotated[dict, Depends(UserService.get_current_user)], chat_id: str = Form(None), message: str = Form(None), file: UploadFile = File(None)):
     user_id = current_user['_id']
+    print(f"Received prompt request from user {user_id} with chat_id={chat_id}, message={message}, file={file}")
     # result = None
     # if chat_id is None:
     #     result = await ChatHistoryService.create_new_chat_history(user_id,title=message)
@@ -30,6 +37,7 @@ async def get_answer(current_user: Annotated[dict, Depends(UserService.get_curre
     
     try:
         # === VALIDATION: Phải có ít nhất message HOẶC file ===
+        unique_filename = "" 
         if not message and not file:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -49,7 +57,28 @@ async def get_answer(current_user: Annotated[dict, Depends(UserService.get_curre
             metadata["snake_detected"] = snake_name
             metadata["probability"] = detection_result["probability"]
             print(f"Detected snake: {snake_name} (confidence: {detection_result['probability']:.2%})")
+
+             # Đường dẫn thư mục nơi lưu ảnh
+            upload_folder = "static"
             
+            # Kiểm tra xem thư mục đã tồn tại chưa
+            if not os.path.exists(upload_folder):
+                print(f"📂 Creating folder {upload_folder}...")
+                os.makedirs(upload_folder)  # Tạo thư mục nếu chưa có
+
+            # # Xác định đường dẫn lưu file
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}_{file.filename}"
+            file_path = os.path.join(upload_folder, unique_filename)
+
+            image = Image.open(BytesIO(file_bytes))
+            image = image.convert("RGB")
+            image.save(file_path)
+
+            # # Lưu file vào thư mục
+            # with open(file_path, "wb") as f:
+            #     f.write(file_bytes)
+
             # Nếu chỉ có ảnh không có text -> set default message
             if not message:
                 user_message_content = f"[Uploaded image of {snake_name}]"
@@ -57,7 +86,8 @@ async def get_answer(current_user: Annotated[dict, Depends(UserService.get_curre
         
         # === STEP 2: Tạo chat mới nếu chưa có ===
         if not chat_id:
-            title = f"Chat về {snake_name}" if snake_name else "New Chat"
+            # title = f"Chat về {snake_name}" if snake_name else "New Chat"
+            title = message
             chat_id = await ChatHistoryService.create_new_chat_history(user_id=user_id, title=title)
             print(f"Created new chat: {chat_id}")
         else:
@@ -75,9 +105,10 @@ async def get_answer(current_user: Annotated[dict, Depends(UserService.get_curre
             chat_id=chat_id,
             role="human",
             content=user_message_content,
+            file_name=unique_filename,
             metadata=metadata
         )
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
