@@ -13,6 +13,7 @@ interface Message {
     role: "human" | "bot";
     content: string;
     image?: string; // URL hoặc base64 của hình ảnh
+    file_name?: string; // Đường dẫn file từ database
   }
 export default function ChatContent({ params }: { params: { id: string } }) {
     // console.log("Chat ID:", params.id);
@@ -124,14 +125,16 @@ export default function ChatContent({ params }: { params: { id: string } }) {
             {
               (
                   <div className="w-5/6 md:max-w-2xl flex flex-col gap-4 pb-22">
-                     {messages.map((msg, index) => (
+                     {messages.map((msg, index) => {
+                        const imageUrl = msg.file_name ? `http://localhost:8000/static/${msg.file_name}` : msg.image;
+                        return (
                         <div key={index} className={`flex ${msg.role === 'human' ? 'justify-end' : 'justify-start'} mb-3`}>
-                            {msg.image ? (
+                            {imageUrl ? (
                                 // Nếu có hình ảnh, hiển thị riêng biệt không có background
                                 <div className="flex flex-col items-end max-w-full">
                                     <div className="mb-3">
                                         <img 
-                                            src={msg.image} 
+                                            src={imageUrl} 
                                             alt="Uploaded" 
                                             className="max-w-64 max-h-64 rounded-lg object-cover shadow-md"
                                         />
@@ -159,7 +162,8 @@ export default function ChatContent({ params }: { params: { id: string } }) {
                                 </div>
                             )}
                         </div>
-                        ))}
+                        );
+                     })}
                         {/* Scroll down */}
                         <div ref={messagesEndRef} />
                         {/* Hiển thị loading khi đang chờ phản hồi */}

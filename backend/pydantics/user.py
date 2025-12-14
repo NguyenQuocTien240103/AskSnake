@@ -6,6 +6,9 @@ class UserBase(BaseModel):
 
 class UserLogin(UserBase):
     password: Annotated[str, Field(min_length=6)]
+    
+class UserRole(UserBase):
+    role:str
 
 class UserRegister(UserBase):
     password: Annotated[str, Field(min_length=6)]

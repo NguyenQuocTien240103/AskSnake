@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
-from typing import List, Optional, Literal, Any
+from typing import List, Optional, Literal, Any, Annotated
 from datetime import datetime
 from bson import ObjectId
 
@@ -64,3 +64,6 @@ class ChatResponse(BaseModel):
             }
         }
     }
+
+class RenameChatRequest(BaseModel):
+    newName:  Annotated[str, Field(min_length=1, description="New name must not be empty")]

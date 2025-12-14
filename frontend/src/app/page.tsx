@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { ContentLayout } from "@/components/dashboard/content-layout";
 import { ChatPublicLayout } from '@/components/chat/chat-public-layout';
 import { ChatContent } from '@/components/chat/chat-content';
+import { ChatPublicContent } from '@/components/chat/chat-public-content';
 import { getUserCurrent } from '@/services/userService';
 import { useAuthStore } from "@/stores/use-auth";
 import Loading from './loading';
@@ -35,7 +36,7 @@ export default function Home() {
   if (!user || !user.email) {
     return (
       <ChatPublicLayout>
-        <ChatContent />
+        <ChatPublicContent />
       </ChatPublicLayout>
     );
   }

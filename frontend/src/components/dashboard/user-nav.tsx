@@ -11,6 +11,7 @@ import { logout } from "@/services/authService";
 
 export function UserNav() {
   const {user, setLogout} = useAuthStore();
+  // console.log("user",user)
   const handleLogOut = async () =>{
     try {
       await logout();
@@ -56,14 +57,26 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+          {
+            user?.role !== "user" &&
           <DropdownMenuItem className="hover:cursor-pointer" asChild>
-            <Link href="/dashboard" className="flex items-center">
+            <Link href="/admin/manage-user" className="flex items-center">
               <LayoutGrid className="w-4 h-4 mr-3 text-muted-foreground" />
-              Dashboard
+              Mange-Users
             </Link>
           </DropdownMenuItem>
+          }
+           {
+            user?.role !== "user" &&
           <DropdownMenuItem className="hover:cursor-pointer" asChild>
-            <Link href="/account" className="flex items-center">
+            <Link href="/admin/data-predict" className="flex items-center">
+              <LayoutGrid className="w-4 h-4 mr-3 text-muted-foreground" />
+              Data-Predict
+            </Link>
+          </DropdownMenuItem>
+          }
+          <DropdownMenuItem className="hover:cursor-pointer" asChild>
+            <Link href="/settings/account" className="flex items-center">
               <User className="w-4 h-4 mr-3 text-muted-foreground" />
               Account
             </Link>

@@ -1,78 +1,256 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
-from services.ImageService import ImageService
-from services.RagService import RagService
+import os
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends, Query
+from typing import Annotated  
+from services.UserService import UserService
+from services.RagService import RagService # mở đoạn này ra
+from services.ImageService import ImageService # mở đoạn này ra
+from config.rag_config import RagConfig # mở đoạn này ra
+from services.ChatHistoryService import ChatHistoryService
+from pydantics.chat import ChatRequest, ChatResponse, RenameChatRequest
+from PIL import Image
+from io import BytesIO
+import uuid
+from datetime import datetime
 
 app_router = APIRouter()
-image_service = ImageService()
-rag_service = RagService()
 
-# Kiểm tra xem có index sẵn chưa
-if not rag_service.load_existing_index():
-    print("No existing index found. Please run with --ingest first.")
+rag_service = RagService() # mở đoạn này ra
+image_service = ImageService() # mở đoạn này ra
 
-@app_router.post("/prompt", status_code=status.HTTP_200_OK)
-async def get_answer(
-    message: str = Form(None),
-    file: UploadFile = File(None)
-):
+
+# Load existing RAG index
+if not rag_service.load_existing_index(): # mở đoạn này ra
+    print("Warning: No existing RAG index found.") # mở đoạn này ra
+
+# Cấu hình
+MAX_MESSAGES_BEFORE_SUMMARY = 4  # Tự động tóm tắt sau 4 messages (2 turns: user + AI)
+RECENT_MESSAGES_COUNT = 3  # Lấy 3 messages gần nhất (giảm để tiết kiệm context)
+
+@app_router.post("/prompt",response_model=ChatResponse, status_code=status.HTTP_200_OK)
+async def get_answer(current_user: Annotated[dict, Depends(UserService.get_current_user)], chat_id: str = Form(None), message: str = Form(None), file: UploadFile = File(None)):
+    user_id = current_user['_id']
+    print(f"Received prompt request from user {user_id} with chat_id={chat_id}, message={message}, file={file}")
+    # result = None
+    # if chat_id is None:
+    #     result = await ChatHistoryService.create_new_chat_history(user_id,title=message)
+    # return {"message": message, "result": str(result)}
+    
     try:
-        # Trường hợp: chỉ có file
-        if file and not message:
-            file_bytes = await file.read()
-            result = await image_service.detect_image(file_bytes)
-            return {
-                "message": "Image processed successfully",
-                "prediction": result["predicted_class"],
-                "probability": result["probability"]
-            }
-
-        # Trường hợp: chỉ có message
-        elif message and not file:
-            result_rag = rag_service.query(message)
-            if "error" in result_rag:
-                return {
-                    "message": "RAG query failed",
-                    "received_message": message,
-                    "response_rag": result_rag["error"]
-                }
-            return {
-                "message": "RAG query successful",
-                "received_message": message,
-                "response_rag": result_rag["response"]
-            }
-
-        # Trường hợp: có cả file và message
-        elif file and message:
-            file_bytes = await file.read()
-            result = await image_service.detect_image(file_bytes)
-            result_rag = rag_service.query(message)
-
-            if "error" in result_rag:
-                return {
-                    "message": "Image and RAG processed with partial success",
-                    "received_message": message,
-                    "response_rag": result_rag["error"],
-                    "prediction": result["predicted_class"],
-                    "probability": result["probability"]
-                }
-
-            return {
-                "message": "Image and RAG processed successfully",
-                "received_message": message,
-                "response_rag": result_rag["response"],
-                "prediction": result["predicted_class"],
-                "probability": result["probability"]
-            }
-
-        # Trường hợp không có gì
-        else:
+        # === VALIDATION: Phải có ít nhất message HOẶC file ===
+        unique_filename = "" 
+        relative_path = None
+        if not message and not file:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="You must provide either a file or a message."
+                detail="You must provide either a message or a file."
             )
+        
+        snake_name = None
+        metadata = {}
+        user_message_content = message or ""  # Default to empty string if only image
+        
+        # === STEP 1: Xử lý image nếu có ===
+        if file:
+            print("📸 Processing uploaded image...")
+            file_bytes = await file.read()
 
+            detection_result = await image_service.detect_image(file_bytes)
+            snake_name = detection_result["predicted_class"]
+
+            metadata["snake_detected"] = snake_name
+            metadata["probability"] = detection_result["probability"]
+
+            print(f"Detected snake: {snake_name} (confidence: {detection_result['probability']:.2%})")
+
+            # ---- Đường dẫn thư mục ----
+            base_upload_folder = "static"
+            snake_folder = os.path.join(base_upload_folder, snake_name)
+
+            # Tạo thư mục static/snake_name nếu chưa có
+            os.makedirs(snake_folder, exist_ok=True)
+
+            # ---- Tạo tên file ----
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}_{file.filename}"
+
+            # ---- Đường dẫn file đúng ----
+            file_path = os.path.join(snake_folder, unique_filename)
+
+            # ---- Lưu ảnh ----
+            image = Image.open(BytesIO(file_bytes))
+            image = image.convert("RGB")
+            image.save(file_path)
+
+
+            # # Lưu file vào thư mục
+            # with open(file_path, "wb") as f:
+            #     f.write(file_bytes)
+
+            # Nếu chỉ có ảnh không có text -> set default message
+
+            #------- gọi service lưu vào history predicted snake -------#
+            relative_path = f"{snake_name}/{unique_filename}"
+            print(f"Saving predicted snake image to history: {relative_path}")
+            await ChatHistoryService.add_history_predict(
+                label=snake_name,
+                confident=f"{detection_result['probability']:.2%}",
+                file_name=relative_path
+            )
+            if not message:
+                user_message_content = f"[Uploaded image of {snake_name}]"
+                print(f"Image-only mode: Auto-generated message for storage")
+
+            
+        
+        # === STEP 2: Tạo chat mới nếu chưa có ===
+        if not chat_id:
+            # title = f"Chat về {snake_name}" if snake_name else "New Chat"
+            title = message
+            chat_id = await ChatHistoryService.create_new_chat_history(user_id=user_id, title=title)
+            print(f"Created new chat: {chat_id}")
+        else:
+            # Verify chat exists
+            existing_chat = await ChatHistoryService.get_chat_history(chat_id)
+            if not existing_chat:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Chat not found"
+                )
+        
+        # === STEP 3: Lưu message của user vào MongoDB (role=human) ===
+        print(f"Saving user message to MongoDB...")
+        success = await ChatHistoryService.add_message(
+            chat_id=chat_id,
+            role="human",
+            content=user_message_content,
+            file_name=relative_path,
+            metadata=metadata
+        )
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save user message"
+            )
+        
+        # === STEP 4: Lấy 10 messages gần nhất + summary từ MongoDB ===
+        print(f"Fetching recent chat history...")
+        recent_messages = await ChatHistoryService.get_recent_messages(
+            chat_id=chat_id, 
+            limit=RECENT_MESSAGES_COUNT
+        )
+        
+        summary = await ChatHistoryService.get_chat_summary(chat_id)
+        
+        print(f"Retrieved {len(recent_messages)} recent messages")
+        if summary:
+            print(f"Found existing summary: {summary[:100]}...")
+        
+        # Log chi tiết history để debug
+        print(f"\nDEBUG - Chat History Being Used:")
+        for i, msg in enumerate(recent_messages, 1):
+            role_emoji = "👤" if msg["role"] == "human" else "🤖"
+            print(f"  {i}. {role_emoji} [{msg['role']}]: {msg['content'][:80]}...")
+        
+        # === STEP 5: Query RAG để lấy context từ Qdrant ===
+        print(f"Querying RAG for relevant context...")
+        
+        # Case 1: Có ảnh (với hoặc không có câu hỏi)
+        if snake_name:
+            print(f"Image detected: {snake_name}")
+            if message:
+                print(f"User question: {message}")
+            else:
+                print(f"No specific question - will provide general description")
+            
+            rag_result = rag_service.query_with_image(
+                snake_name=snake_name,
+                user_question=message,  # None if image-only
+                top_k=RagConfig.TOP_K_RESULTS,
+                chat_history=recent_messages,
+                summary=summary
+            )
+        # Case 2: Chỉ có text (không có ảnh)
+        else:
+            print(f"Text-only query: {message}")
+            rag_result = rag_service.query(
+                question=message,
+                top_k=RagConfig.TOP_K_RESULTS,
+                chat_history=recent_messages,
+                summary=summary
+            )
+        
+        if "error" in rag_result:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"RAG query failed: {rag_result['error']}"
+            )
+        
+        ai_response = rag_result["response"]
+        context_used = rag_result.get("num_context_chunks", 0)
+        
+        print(f"RAG response generated (used {context_used} context chunks)")
+        
+        # === STEP 6: Lưu response của AI vào MongoDB (role=ai) ===
+        print(f"Saving AI response to MongoDB...")
+        ai_metadata = {
+            "context_chunks_used": context_used,
+            "reranking_used": rag_result.get("rerank_info", {}).get("reranking_used", False)
+        }
+        
+        success = await ChatHistoryService.add_message(
+            chat_id=chat_id,
+            role="ai",
+            content=ai_response,
+            # file_name=unique_filename,
+            metadata=ai_metadata
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save AI response"
+            )
+        
+        # === STEP 7: Kiểm tra và tự động tóm tắt nếu cần ===
+        was_summarized = False
+        total_messages = await ChatHistoryService.get_message_count(chat_id)
+        
+        print(f"Total messages in chat: {total_messages}")
+        
+        if total_messages >= MAX_MESSAGES_BEFORE_SUMMARY and not summary:
+            print(f"Chat has {total_messages} messages, generating summary...")
+            
+            # Lấy toàn bộ messages để tóm tắt
+            all_messages = await ChatHistoryService.get_recent_messages(
+                chat_id=chat_id,
+                limit=total_messages
+            )
+            
+            # Generate summary bằng LLM
+            summary_text = rag_service.llm.generate_summary(all_messages)
+            
+            # Lưu summary vào MongoDB
+            await ChatHistoryService.update_summary(chat_id, summary_text)
+            was_summarized = True
+            print(f"Summary generated and saved: {summary_text[:100]}...")
+        
+        # === RETURN RESPONSE ===
+        return ChatResponse(
+            chat_id=chat_id,
+            message=ai_response,
+            context_used=context_used,
+            was_summarized=was_summarized,
+            history_used=len(recent_messages),
+            has_summary=summary is not None
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        print("Error:", e)
+        print(f"Error in send_message: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -80,74 +258,277 @@ async def get_answer(
 
 
 
+@app_router.post("/prompt-public",response_model=ChatResponse, status_code=status.HTTP_200_OK)
+async def get_answer( chat_id: str = Form(None), message: str = Form(None), file: UploadFile = File(None)):
+    # user_id = current_user['_id']
+    # print(f"Received prompt request from user {user_id} with chat_id={chat_id}, message={message}, file={file}")
+    # result = None
+    # if chat_id is None:
+    #     result = await ChatHistoryService.create_new_chat_history(user_id,title=message)
+    # return {"message": message, "result": str(result)}
+    
+    try:
+        # === VALIDATION: Phải có ít nhất message HOẶC file ===
+        unique_filename = "" 
+        relative_path = None
+
+        if not message and not file:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You must provide either a message or a file."
+            )
+        
+        snake_name = None
+        metadata = {}
+        user_message_content = message or ""  # Default to empty string if only image
+        
+        # === STEP 1: Xử lý image nếu có ===
+        if file:
+            print(f"📸 Processing uploaded image...")
+            file_bytes = await file.read()
+            detection_result = await image_service.detect_image(file_bytes) 
+            snake_name = detection_result["predicted_class"]
+            metadata["snake_detected"] = snake_name
+            metadata["probability"] = detection_result["probability"]
+            print(f"Detected snake: {snake_name} (confidence: {detection_result['probability']:.2%})")
+
+             # Đường dẫn thư mục nơi lưu ảnh
+            base_upload_folder = "static"
+            snake_folder = os.path.join(base_upload_folder, snake_name)
+            
+            os.makedirs(snake_folder, exist_ok=True)
 
 
-# from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
-# from services.ImageService import ImageService
-# from services.RagService import RagService
-# import os
+            # # Xác định đường dẫn lưu file
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}_{file.filename}"
+            file_path = os.path.join(snake_folder, unique_filename)
 
-# app_router = APIRouter()
-# image_service = ImageService()
-# rag_service = RagService()
+            image = Image.open(BytesIO(file_bytes))
+            image = image.convert("RGB")
+            image.save(file_path)
 
-# # Kiểm tra xem có index sẵn chưa
-# if not rag_service.load_existing_index():
-#     print("No existing index found. Please run with --ingest first.")
+            # # Lưu file vào thư mục
+            # with open(file_path, "wb") as f:
+            #     f.write(file_bytes)
 
+            # Nếu chỉ có ảnh không có text -> set default message
 
-# @app_router.post("/prompt", status_code=status.HTTP_200_OK)
-# async def get_answer(
-#     message: str = Form(...),
-#     file: UploadFile = File(None)
-# ):
-#     try:
-#         # Nếu không có file, chỉ trả về message
-#         if not file:
-#             return {
-#                 "message": "No file uploaded",
-#                 "received_message": message
-#             }
+            relative_path = f"{snake_name}/{unique_filename}"
+            print(f"Saving predicted snake image to history: {relative_path}")
+            await ChatHistoryService.add_history_predict(
+                label=snake_name,
+                confident=f"{detection_result['probability']:.2%}",
+                file_name=relative_path
+            )
 
-#         # Đọc file bytes
-#         file_bytes = await file.read()
+            if not message:
+                user_message_content = f"[Uploaded image of {snake_name}]"
+                print(f"Image-only mode: Auto-generated message for storage")
+        
+        # === STEP 2: Tạo chat mới nếu chưa có ===
+        if not chat_id:
+            # title = f"Chat về {snake_name}" if snake_name else "New Chat"
+            title = message
+            chat_id = await ChatHistoryService.create_new_chat_public_history(title=title)
+            print(f"Created new chat: {chat_id}")
+        else:
+            # Verify chat exists
+            existing_chat = await ChatHistoryService.get_chat_public_history(chat_id)
+            if not existing_chat:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Chat not found"
+                )
+        
+        # === STEP 3: Lưu message của user vào MongoDB (role=human) ===
+        print(f"Saving user message to MongoDB...")
+        success = await ChatHistoryService.add_message_public(
+            chat_id=chat_id,
+            role="human",
+            content=user_message_content,
+            file_name=relative_path,
+            metadata=metadata
+        )
 
-#         # Gọi hàm detect
-#         result = await image_service.detect_image(file_bytes)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save user message"
+            )
+        
+        # === STEP 4: Lấy 10 messages gần nhất + summary từ MongoDB ===
+        print(f"Fetching recent chat history...")
+        recent_messages = await ChatHistoryService.get_recent_messages_public(
+            chat_id=chat_id, 
+            limit=RECENT_MESSAGES_COUNT
+        )
+        
+        summary = await ChatHistoryService.get_chat_public_summary(chat_id)
+        
+        print(f"Retrieved {len(recent_messages)} recent messages")
+        if summary:
+            print(f"Found existing summary: {summary[:100]}...")
+        
+        # Log chi tiết history để debug
+        print(f"\nDEBUG - Chat History Being Used:")
+        for i, msg in enumerate(recent_messages, 1):
+            role_emoji = "👤" if msg["role"] == "human" else "🤖"
+            print(f"  {i}. {role_emoji} [{msg['role']}]: {msg['content'][:80]}...")
+        
+        # === STEP 5: Query RAG để lấy context từ Qdrant ===
+        print(f"Querying RAG for relevant context...")
+        
+        # Case 1: Có ảnh (với hoặc không có câu hỏi)
+        if snake_name:
+            print(f"Image detected: {snake_name}")
+            if message:
+                print(f"User question: {message}")
+            else:
+                print(f"No specific question - will provide general description")
+            
+            rag_result = rag_service.query_with_image(
+                snake_name=snake_name,
+                user_question=message,  # None if image-only
+                top_k=RagConfig.TOP_K_RESULTS,
+                chat_history=recent_messages,
+                summary=summary
+            )
+        # Case 2: Chỉ có text (không có ảnh)
+        else:
+            print(f"Text-only query: {message}")
+            rag_result = rag_service.query(
+                question=message,
+                top_k=RagConfig.TOP_K_RESULTS,
+                chat_history=recent_messages,
+                summary=summary
+            )
+        
+        if "error" in rag_result:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"RAG query failed: {rag_result['error']}"
+            )
+        
+        ai_response = rag_result["response"]
+        context_used = rag_result.get("num_context_chunks", 0)
+        
+        print(f"RAG response generated (used {context_used} context chunks)")
+        
+        # === STEP 6: Lưu response của AI vào MongoDB (role=ai) ===
+        print(f"Saving AI response to MongoDB...")
+        ai_metadata = {
+            "context_chunks_used": context_used,
+            "reranking_used": rag_result.get("rerank_info", {}).get("reranking_used", False)
+        }
+        
+        success = await ChatHistoryService.add_message_public(
+            chat_id=chat_id,
+            role="ai",
+            content=ai_response,
+            metadata=ai_metadata
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save AI response"
+            )
+        
+        # === STEP 7: Kiểm tra và tự động tóm tắt nếu cần ===
+        was_summarized = False
+        total_messages = await ChatHistoryService.get_message_count_public(chat_id)
+        
+        print(f"Total messages in chat: {total_messages}")
+        
+        if total_messages >= MAX_MESSAGES_BEFORE_SUMMARY and not summary:
+            print(f"Chat has {total_messages} messages, generating summary...")
+            
+            # Lấy toàn bộ messages để tóm tắt
+            all_messages = await ChatHistoryService.get_recent_messages_public(
+                chat_id=chat_id,
+                limit=total_messages
+            )
+            
+            # Generate summary bằng LLM
+            summary_text = rag_service.llm.generate_summary(all_messages)
+            
+            # Lưu summary vào MongoDB
+            await ChatHistoryService.update_summary_public(chat_id, summary_text)
+            was_summarized = True
+            print(f"Summary generated and saved: {summary_text[:100]}...")
+        
+        # === RETURN RESPONSE ===
+        return ChatResponse(
+            chat_id=chat_id,
+            message=ai_response,
+            context_used=context_used,
+            was_summarized=was_summarized,
+            history_used=len(recent_messages),
+            has_summary=summary is not None
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in send_message: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
-#         # Nếu không có message thì chỉ trả kết quả ảnh
-#         if not message:
-#             return {
-#                 "message": "Image processed successfully",
-#                 "received_message": message,
-#                 "prediction": result["predicted_class"],
-#                 "probability": result["probability"]
-#             }
+# ------------------------------------------------------------- #
+@app_router.delete("/{chat_id}")
+async def delete_chat_history(
+    chat_id: str,
+    current_user: Annotated[dict, Depends(UserService.get_current_user)]
+):
+    try:
+        user_id = current_user["_id"]
+        result = await ChatHistoryService.delete_chat_history(user_id, chat_id)
 
-#         # Nếu có message, gọi RAG
-#         result_rag = rag_service.query(message)
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat history not found or not belong to user."
+            )
 
-#         if "error" in result_rag:
-#             return {
-#                 "message": "Image processed successfully",
-#                 "received_message": message,
-#                 "response_rag": result_rag["error"],
-#                 "prediction": result["predicted_class"],
-#                 "probability": result["probability"]
-#             }
+        return {"message": "Chat history deleted successfully."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting chat: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
 
-#         # Trả về kết quả cả ảnh và RAG
-#         return {
-#             "message": "Image processed successfully",
-#             "received_message": message,
-#             "response_rag": result_rag["response"],
-#             "prediction": result["predicted_class"],
-#             "probability": result["probability"]
-#         }
+@app_router.put("/rename/{chat_id}")
+async def rename_chat_history(
+    chat_id: str,
+    newName: RenameChatRequest,
+    current_user: Annotated[dict, Depends(UserService.get_current_user)],
+):
+    try:
+        new_name = newName.dict()["newName"]
+        user_id = current_user["_id"]
+        result = await ChatHistoryService.rename_chat_history(user_id, chat_id, new_name)
 
-#     except Exception as e:
-#         print("Error:", e)
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail=str(e)
-#         )
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat history not found or does not belong to the current user."
+            )
+
+        return {"message": "Chat history renamed successfully."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error renaming chat: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+

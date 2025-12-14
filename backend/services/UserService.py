@@ -44,3 +44,25 @@ class UserService:
             
         # return UserBase(email=user['email'])
         return user
+    
+    async def get_users(page: int =1, limit: int =10) -> dict:
+        col = db["users"]
+        skip = (page - 1) * limit
+        filter = {"role":"user"}
+        cursor = (
+            col.find(filter)
+            .sort("createdAt", -1)
+            .skip(skip)
+            .limit(limit)
+        )
+        data = await cursor.to_list(limit)
+        for item in data:
+            item["_id"] = str(item["_id"])
+            item.pop("password", None)
+        total = await col.count_documents(filter)
+        return {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "data": data
+        }

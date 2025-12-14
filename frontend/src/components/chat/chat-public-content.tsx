@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Paperclip, Send, Folder, X } from "lucide-react"; 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { prompt } from "@/services/chatService"
+import { promptPublic } from "@/services/chatService"
 import { useRef } from "react";
 
 interface Message {
@@ -12,7 +12,7 @@ interface Message {
     content: string;
     image?: string; // URL hoặc base64 của hình ảnh
   }
-export function ChatContent() {
+export function ChatPublicContent() {
     const [showContent, setShowContent] = useState<boolean>(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [message, setMessage] = useState("");
@@ -70,7 +70,7 @@ export function ChatContent() {
         }
       
         try {
-          const response = await prompt(formData);
+          const response = await promptPublic(formData);
           console.log("Full response:", response);
           if(!chatId) setChatId(response.data.chat_id);
       
@@ -122,7 +122,6 @@ export function ChatContent() {
                                     <div className="mb-3">
                                         <img 
                                             src={msg.image} 
-                                            
                                             alt="Uploaded" 
                                             className="max-w-64 max-h-64 rounded-lg object-cover shadow-md"
                                         />

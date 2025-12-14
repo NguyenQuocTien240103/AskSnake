@@ -4,8 +4,9 @@ from pydantic import BaseModel, EmailStr
 from config.database import client, db
 from routers.auth_router import app_router as auth_router
 from routers.user_router import app_router as user_router
-# from routers.chat_router import app_router as chat_router
-from routers.chat_router_test import app_router as chat_router_test
+from routers.chat_router import app_router as chat_router
+# from routers.chat_router_test import app_router as chat_router_test
+from routers.history_pre_router import app_router as history_pre_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -21,5 +22,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(user_router, prefix="/user", tags=["user"])
 # app.include_router(chat_router, prefix="/chat", tags=["chat"])
-app.include_router(chat_router_test, prefix="/chat", tags=["chat"])
+app.include_router(chat_router, prefix="/chat", tags=["chat"])
+app.include_router(history_pre_router, prefix="/history_pre", tags=["history_pre"])
+
 

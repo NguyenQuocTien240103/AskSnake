@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, Dot, LucideIcon, MoreVertical, Trash2, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { DropdownMenuArrow } from "@radix-ui/react-dropdown-menu";
+import { DropdownMenuArrow } from "@radix-ui/react-dropdown-menu"; 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"; 
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"; 
 import { DropdownMenu, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePathname } from "next/navigation";
+import { deleteChat, renameChat } from "@/services/chatService"
+
 
 type Submenu = {
   href: string;
@@ -28,8 +30,8 @@ interface CollapseMenuButtonProps {
   submenus: Submenu[];
   isOpen: boolean | undefined;
   isScrollDown?: boolean;
-  onRename?: (index: number, newLabel: string) => Promise<void>;
-  onDelete?: (index: number) => Promise<void>;
+  // onRename?: (index: number, newLabel: string) => Promise<void>;
+  // onDelete?: (index: number) => Promise<void>;
 }
 
 export function CollapseMenuButton({ 
@@ -39,8 +41,8 @@ export function CollapseMenuButton({
   submenus, 
   isOpen, 
   isScrollDown,
-  onRename,
-  onDelete 
+  // onRename,
+  // onDelete 
 }: CollapseMenuButtonProps) {
   const pathname = usePathname();
   const isSubmenuActive = submenus.some((submenu) =>
@@ -53,7 +55,7 @@ export function CollapseMenuButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [localSubmenus, setLocalSubmenus] = useState<Submenu[]>(submenus);
-  const [editingHref, setEditingHref] = useState<string | null>(null);
+
   useEffect(() => {
     if(submenus.length !== localSubmenus.length){
       setLocalSubmenus(submenus);
@@ -61,7 +63,6 @@ export function CollapseMenuButton({
   }, [submenus]);
   // Mở dialog đổi tên
   const handleOpenRenameDialog = (index: number, currentLabel: string, href: string) => {
-    setEditingHref(href);
     setEditingIndex(index);
     setNewName(currentLabel);
     setIsRenameDialogOpen(true);
@@ -76,32 +77,33 @@ export function CollapseMenuButton({
 
 
   const handleRename = async () => {
-  if (editingIndex === null) return;
+    if (editingIndex === null) return;
 
-  const trimmedName = newName.trim();
-  if (!trimmedName) {
-    alert("Tên không được để trống!");
-    return;
-  }
-  console.log(editingHref)
-
-
-  // Cập nhật giao diện ngay lập tức
-  setLocalSubmenus((prev) =>
-    prev.map((item, i) =>
-      i === editingIndex ? { ...item, label: trimmedName } : item
-    )
-  );
-
-  // Nếu bạn muốn vẫn gọi API bên ngoài thì giữ lại:
-  if (onRename) {
-    try {
-      await onRename(editingIndex, trimmedName);
-    } catch (err) {
-      console.error(err);
-      alert("API rename lỗi");
+    const trimmedName = newName.trim();
+    if (!trimmedName) {
+      alert("Tên không được để trống!");
+      return;
     }
-  }
+    // console.log(localSubmenus[editingIndex])
+
+    // Cập nhật giao diện ngay lập tức
+    // setLocalSubmenus((prev) =>
+    //   prev.map((item, i) =>
+    //     i === editingIndex ? { ...item, label: trimmedName } : item
+    //   )
+    // );
+    try {
+      await renameChat(localSubmenus[editingIndex].href.split('/chats/').pop() || "",trimmedName);
+      // Cập nhật giao diện ngay lập tức
+      setLocalSubmenus((prev) =>
+        prev.map((item, i) =>
+          i === editingIndex ? { ...item, label: trimmedName } : item
+      ));
+    } catch (error) {
+      console.error("Error deleting:", error);
+      alert("Đổi tên thất bại!");
+    }
+
 
   handleCloseDialog();
 };
@@ -111,9 +113,8 @@ export function CollapseMenuButton({
   const handleDelete = async (index: number, label: string) => {
     if (confirm(`Bạn có chắc chắn muốn xóa "${label}"?`)) {
       try {
-        if (onDelete) {
-          await onDelete(index);
-        }
+        await deleteChat(localSubmenus[index].href.split('/chats/').pop() || "");
+        setLocalSubmenus(prev => prev.filter((_, i) => i !== index));
       } catch (error) {
         console.error("Error deleting:", error);
         alert("Xóa thất bại!");
