@@ -29,11 +29,6 @@ RECENT_MESSAGES_COUNT = 3  # Lấy 3 messages gần nhất (giảm để tiết 
 @app_router.post("/prompt",response_model=ChatResponse, status_code=status.HTTP_200_OK)
 async def get_answer(current_user: Annotated[dict, Depends(UserService.get_current_user)], chat_id: str = Form(None), message: str = Form(None), file: UploadFile = File(None)):
     user_id = current_user['_id']
-    print(f"Received prompt request from user {user_id} with chat_id={chat_id}, message={message}, file={file}")
-    # result = None
-    # if chat_id is None:
-    #     result = await ChatHistoryService.create_new_chat_history(user_id,title=message)
-    # return {"message": message, "result": str(result)}
     
     try:
         # === VALIDATION: Phải có ít nhất message HOẶC file ===
@@ -80,13 +75,6 @@ async def get_answer(current_user: Annotated[dict, Depends(UserService.get_curre
             image = Image.open(BytesIO(file_bytes))
             image = image.convert("RGB")
             image.save(file_path)
-
-
-            # # Lưu file vào thư mục
-            # with open(file_path, "wb") as f:
-            #     f.write(file_bytes)
-
-            # Nếu chỉ có ảnh không có text -> set default message
 
             #------- gọi service lưu vào history predicted snake -------#
             relative_path = f"{snake_name}/{unique_filename}"
@@ -260,12 +248,6 @@ async def get_answer(current_user: Annotated[dict, Depends(UserService.get_curre
 
 @app_router.post("/prompt-public",response_model=ChatResponse, status_code=status.HTTP_200_OK)
 async def get_answer( chat_id: str = Form(None), message: str = Form(None), file: UploadFile = File(None)):
-    # user_id = current_user['_id']
-    # print(f"Received prompt request from user {user_id} with chat_id={chat_id}, message={message}, file={file}")
-    # result = None
-    # if chat_id is None:
-    #     result = await ChatHistoryService.create_new_chat_history(user_id,title=message)
-    # return {"message": message, "result": str(result)}
     
     try:
         # === VALIDATION: Phải có ít nhất message HOẶC file ===
@@ -307,12 +289,6 @@ async def get_answer( chat_id: str = Form(None), message: str = Form(None), file
             image = Image.open(BytesIO(file_bytes))
             image = image.convert("RGB")
             image.save(file_path)
-
-            # # Lưu file vào thư mục
-            # with open(file_path, "wb") as f:
-            #     f.write(file_bytes)
-
-            # Nếu chỉ có ảnh không có text -> set default message
 
             relative_path = f"{snake_name}/{unique_filename}"
             print(f"Saving predicted snake image to history: {relative_path}")
