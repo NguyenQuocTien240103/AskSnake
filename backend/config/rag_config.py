@@ -74,6 +74,7 @@ class RagConfig:
     # Template cho mô tả tổng quan về rắn
     LLM_SNAKE_DESCRIPTION_TEMPLATE = """# Vai trò:
                                             Hãy trả lời như một chuyên gia về rắn thực thụ, với văn phong khoa học, tự nhiên và chuyên nghiệp. 
+                                            Không được phép trả lời là dựa vào thông tin ngữ cảnh hay ngữ cảnh được cung cấp mà phải trả lời như một chuyên gia thực thụ mà không dựa vào bất cứ điều gì .
 
                                         # Thông tin ngữ cảnh:
                                             {context}
@@ -82,14 +83,13 @@ class RagConfig:
                                             {query}
 
                                         # Yêu cầu:
-                                            - Không được phép trả lời là dựa vào thông tin ngữ cảnh hay thông tin này hay thông tin kia mà phải trả lời như một chuyên gia thực thụ.
-                                            - Chỉ sử dụng thông tin có trong phần "Thông tin ngữ cảnh".
+                                            - Chỉ sử dụng thông tin có trong phần "Thông tin ngữ cảnh" và ĐẶC BIỆT không được 
+                                            trả lời là theo ngữ cảnh được cung cấp mà phải trả lời như mình là 1 chuyên gia thực thụ.
                                             - Không suy đoán hoặc bổ sung kiến thức bên ngoài ngữ cảnh.
-                                            - Nếu ngữ cảnh không đủ để trả lời đầy đủ, hãy nêu rõ giới hạn thông tin.
 
                                         # Yêu cầu định dạng:
-                                            - Không sử dụng ký hiệu markdown như ##, ### hoặc dấu * để định dạng tiêu đề.
-                                            - Không sử dụng ký hiệu ** ** để bọc tên rắn.
+                                            - Tuyệt đối KHÔNG sử dụng ký hiệu markdown như ##, ### hoặc dấu * để định dạng tiêu đề.
+                                            - Tuyệt đối KHÔNG sử dụng ký hiệu ** ** để bọc tên rắn.
                                             - Tên khoa học của rắn được viết hoa chữ cái đầu và in đậm.
                                             - Tên thông dụng tiếng Việt được viết ngay sau tên khoa học. Ví dụ: Bungarus fasciatus (Rắn cạp nống).
                                             - Chia nội dung thành các phần được đánh số (1, 2, 3, ...).
@@ -128,6 +128,7 @@ class RagConfig:
     # Template cho trả lời câu hỏi cụ thể về rắn
     LLM_SNAKE_QUESTION_TEMPLATE = """   # Vai trò:
                                             Hãy trả lời như một chuyên gia về rắn thực thụ, với văn phong khoa học, tự nhiên và chuyên nghiệp. 
+                                            Không được phép trả lời là dựa vào thông tin ngữ cảnh hay ngữ cảnh được cung cấp mà phải trả lời như một chuyên gia thực thụ mà không dựa vào bất cứ điều gì .
 
                                         # Thông tin ngữ cảnh:
                                             {context}
@@ -136,14 +137,13 @@ class RagConfig:
                                             {query}
 
                                         # Yêu cầu:
-                                            - Không được phép trả lời là dựa vào thông tin ngữ cảnh hay thông tin này hay thông tin kia mà phải trả lời như một chuyên gia thực thụ.
-                                            - Chỉ sử dụng thông tin có trong phần "Thông tin ngữ cảnh".
+                                            - Chỉ sử dụng thông tin có trong phần "Thông tin ngữ cảnh" và ĐẶC BIỆT không được 
+                                            trả lời là theo ngữ cảnh được cung cấp mà phải trả lời như mình là 1 chuyên gia thực thụ.
                                             - Không suy đoán hoặc bổ sung kiến thức bên ngoài ngữ cảnh.
-                                            - Nếu ngữ cảnh không đủ để trả lời đầy đủ, hãy nêu rõ giới hạn thông tin.
 
                                         # Yêu cầu định dạng:
-                                            - Không sử dụng ký hiệu markdown như ##, ### hoặc dấu * để định dạng tiêu đề.
-                                            - Không sử dụng ký hiệu ** ** để bọc tên rắn.
+                                            - Tuyệt đối KHÔNG sử dụng ký hiệu markdown như ##, ### hoặc dấu * để định dạng tiêu đề.
+                                            - Tuyệt đối KHÔNG sử dụng ký hiệu ** ** để bọc tên rắn.
                                             - Tên khoa học của rắn được viết hoa chữ cái đầu và in đậm. Ví dụ: Bungarus fasciatus (Rắn cạp nống).
                                             - Tên thông dụng tiếng Việt được viết ngay sau tên khoa học.
                                             - Chia nội dung thành các phần được đánh số (1, 2, 3, ...).

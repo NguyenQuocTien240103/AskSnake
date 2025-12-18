@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { promptPublic } from "@/services/chatService"
 import { useRef } from "react";
+import { LoadingIndicator } from "./LoadingIndicator";
+import { MessageBubble } from "./MessageBubble";
 
 interface Message {
     role: "human" | "bot";
@@ -116,57 +118,18 @@ export function ChatPublicContent() {
                     <div className="w-5/6 md:max-w-2xl flex flex-col gap-4 pb-22">
                      {messages.map((msg, index) => (
                         <div key={index} className={`flex ${msg.role === 'human' ? 'justify-end' : 'justify-start'} mb-3`}>
-                            {msg.image ? (
-                                // Nếu có hình ảnh, hiển thị riêng biệt không có background
-                                <div className="flex flex-col items-end max-w-full">
-                                    <div className="mb-3">
-                                        <img 
-                                            src={msg.image} 
-                                            alt="Uploaded" 
-                                            className="max-w-64 max-h-64 rounded-lg object-cover shadow-md"
-                                        />
-                                    </div>
-                                    {msg.content && msg.content !== "Uploaded an image" && (
-                                        <div className={`
-                                            p-3 rounded-lg break-words whitespace-pre-wrap max-w-full overflow-hidden shadow-sm
-                                            ${msg.role === 'human'
-                                            ? 'bg-blue-500 text-white rounded-br-sm'
-                                            : 'bg-gray-200 text-gray-900 rounded-bl-sm'}
-                                        `}>
-                                            {msg.content}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                // Nếu không có hình ảnh, hiển thị bình thường
-                                <div className={`
-                                    p-4 rounded-lg break-words whitespace-pre-wrap max-w-xs md:max-w-md overflow-hidden shadow-sm
-                                    ${msg.role === 'human'
-                                    ? 'bg-blue-500 text-white rounded-br-sm'
-                                    : 'bg-gray-200 text-gray-900 rounded-bl-sm'}
-                                `}>
-                                    <div>{msg.content}</div>
-                                </div>
-                            )}
+                            <MessageBubble 
+                                role={msg.role}
+                                content={msg.content}
+                                image={msg.image}
+                                isLatest={index === messages.length - 1}
+                            />
                         </div>
                         ))}
                         {/* Scroll down */}
                         <div ref={messagesEndRef} />
                         {/* Hiển thị loading khi đang chờ phản hồi */}
-                        {isLoading && (
-                            <div className="flex justify-start mb-3">
-                                <div className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 p-4 rounded-lg rounded-bl-sm shadow-sm">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex gap-1">
-                                            <span className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                            <span className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                            <span className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                                        </div>
-                                        <span className="text-sm">Thinking...</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        {isLoading && <LoadingIndicator />}
                     </div>
                 )
             }
