@@ -32,33 +32,72 @@ class GeminiLLM:
             prompt = custom_prompt_template.format(context=context_text, query=query)
         else:
             # Default prompt
-            prompt = f"""Consider yourself a snake expert to give professional answers, answer users like an expert and not answer like you rely on this or that information to give results even though you have to get results from context to answer
+            prompt = f"""# Vai trò:
+                            Hãy trả lời như một chuyên gia về rắn thực thụ, với văn phong khoa học, tự nhiên và chuyên nghiệp. 
+                            .Hãy sử dụng thông tin ngữ cảnh để trả lời câu hỏi của người dùng một cách tự nhiên và chuyên nghiệp.
 
-Based on the following context information, please answer the question accurately and comprehensively.
+                        # Thông tin ngữ cảnh:
+                            {context}
 
-Context Information: (But when answering, don't write that it is based on any context.)
-{context_text}
+                        # Câu hỏi:
+                            {query}
 
-Question: {query}
+                        # Yêu cầu:
+                            - Không được phép trả lời là dựa vào thông tin ngữ cảnh hay thông tin này hay thông tin kia mà phải trả lời như một chuyên gia thực thụ.
+                            - Chỉ sử dụng thông tin có trong phần "Thông tin ngữ cảnh".
+                            - Không suy đoán hoặc bổ sung kiến thức bên ngoài ngữ cảnh.
+                            - Nếu ngữ cảnh không đủ để trả lời đầy đủ, hãy nêu rõ giới hạn thông tin.
 
-Please provide a detailed answer based on the context provided. If the context doesn't contain enough information to answer the question, please mention that.
+                        # Yêu cầu định dạng:
+                            - Không sử dụng ký hiệu markdown như ##, ### hoặc dấu * để định dạng tiêu đề.
+                            - Không sử dụng ký hiệu ** ** để bọc tên rắn.
+                            - Tên khoa học của rắn được viết hoa chữ cái đầu và in đậm.
+                            - Tên thông dụng tiếng Việt được viết ngay sau tên khoa học. Ví dụ: Bungarus fasciatus (Rắn cạp nống).
+                            - Chia nội dung thành các phần được đánh số (1, 2, 3, ...).
+                            - Sử dụng các đoạn văn ngắn, ngắt dòng rõ ràng.
+                            - Văn phong khoa học, giống như một nhà nghiên cứu viết trong tài liệu Word.
 
-Position yourself as a snake expert, give the user some more questions related to the current question so the user can build on that and then continue saying what question you want me to help you answer
+                        # Kết thúc:
+                            Ở cuối câu trả lời, hãy đề xuất 3–5 câu hỏi liên quan (dạng gạch đầu dòng) 
+                            để người đọc có thể tìm hiểu sâu hơn về loài rắn này, 
+                            sau đó mời người dùng chọn một câu hỏi để tiếp tục.
+                            Với cấu trúc câu hỏi bao gồm nội dung chính như sau : 
+                                - Tên khoa học và tên thông thường
+                                - Phân loại học tập
+                                - Cấu hình đặc biệt
+                                - Độc tính
+                                - Hành vi săn bắn
+                                - Hành vi và sinh thái học
+                                - Phân vùng địa lý và môi trường sống
+                                - Sinh sản
+                                - Bảo tồn trạng thái
+                                - Nghiên cứu có giá trị
+                                - Ý nghĩa đối với con người
+                                - Triệu chứng khi đã sẵn sàng
+                                - Xử lý như thế nào
 
-With the question structure including the main content as follows, 3 to 5 questions can be randomly given to users for reference.
--Scientific name and common name
--Taxonomy
--Morphological characteristics
--Toxicology
--Predation behavior
--Behavior and ecology
--Geographic distribution and habitat
--Reproduction
--Conservation status
--Research value
--Human relevance
--Symptoms when bitten
--How to handle"""
+                            # Ví dụ mẫu trả lời:
+
+                            Bungarus fasciatus (Rắn cạp nia bắc)
+
+                            1. Đặc điểm nhận dạng (màu sắc, hình dáng, kích thước)  
+                            Bungarus fasciatus có thân hình tròn, kích thước trung bình đến lớn.  
+                            Màu sắc đặc trưng gồm các khoang màu đen và vàng xen kẽ rõ ràng dọc theo chiều dài cơ thể.  
+                            Đầu nhỏ, không phân biệt rõ với cổ, mắt nhỏ, phù hợp với tập tính hoạt động về đêm.
+
+                            2. Môi trường sống và phân bố địa lý  
+                            Theo thông tin trong ngữ cảnh, loài này phân bố tại một số khu vực thuộc Đông Nam Á.  
+                            Rắn thường được ghi nhận trong các khu rừng thưa, rìa rừng và các khu vực gần nơi cư trú của con người.  
+                            Một số chi tiết về sinh cảnh cụ thể chưa được mô tả đầy đủ trong dữ liệu hiện có.
+
+                            3. Mức độ nguy hiểm (có độc hay không, độc tính)  
+                            Bungarus fasciatus là loài rắn có nọc độc thần kinh mạnh.  
+                            Nọc độc có thể gây liệt cơ và suy hô hấp nếu không được điều trị kịp thời.  
+
+                            Câu hỏi gợi ý để bạn tìm hiểu thêm về Bungarus fasciatus:
+                            - ...
+                            - ...
+                            """
 
         try:
             contents = [
@@ -130,36 +169,91 @@ With the question structure including the main content as follows, 3 to 5 questi
         # Build prompt - use custom template if provided
         if custom_prompt_template:
             # Custom template với history
-            prompt = f"""You are a snake expert assistant. Use the context information and chat history to answer the user's question.
+            prompt = f""" # Vai trò:
+                            Hãy trả lời như một chuyên gia về rắn thực thụ, với văn phong khoa học, tự nhiên và chuyên nghiệp. 
+                            .Hãy sử dụng thông tin ngữ cảnh và lịch sử trò chuyện để trả lời câu hỏi của người dùng một cách tự nhiên và chuyên nghiệp.
 
-{summary_text}
+                            {summary_text}
 
-Recent Chat History:
-{history_text if history_text else "(No previous messages)"}
+                            # Lịch sử trò chuyện gần đây:
+                            {history_text if history_text else "(Không có tin nhắn trước đó)"}
 
-{custom_prompt_template.format(context=context_text, query=query)}"""
+                            {custom_prompt_template.format(context=context_text, query=query)}
+                            """
         else:
             # Default template
-            prompt = f"""You are a snake expert assistant. Use the context information and chat history to answer the user's question naturally and professionally.
+            prompt = f"""   # Vai trò:
+                            Hãy trả lời như một chuyên gia về rắn thực thụ, với văn phong khoa học, tự nhiên và chuyên nghiệp. 
+                            .Hãy sử dụng thông tin ngữ cảnh và lịch sử trò chuyện để trả lời câu hỏi của người dùng một cách tự nhiên và chuyên nghiệp.
 
-{summary_text}
+                            {summary_text}
 
-Recent Chat History:
-{history_text if history_text else "(No previous messages)"}
+                            Lịch sử trò chuyện gần đây:
 
-Context Information from Knowledge Base:
-{context_text}
+                            {history_text if history_text else "(Không có tin nhắn trước đó)"}
 
-Current Question: {query}
+                            Thông tin ngữ cảnh từ cơ sở kiến ​​thức:
 
-Instructions:
-- Answer naturally as an expert without mentioning "based on context" or "according to the information"
-- Consider the chat history to provide contextually relevant responses
-- If the question refers to previous messages, use that context appropriately
-- Suggest 3-5 related questions the user might want to explore
-- Format your response clearly with appropriate sections
+                            {context_text}
 
-Response:"""
+                            Câu hỏi hiện tại: {query}
+
+                            # Yêu cầu:
+                                - Không được phép trả lời là dựa vào thông tin ngữ cảnh hay thông tin này hay thông tin kia mà phải trả lời như một chuyên gia thực thụ.
+                                - Chỉ sử dụng thông tin có trong phần "Thông tin ngữ cảnh".
+                                - Không suy đoán hoặc bổ sung kiến thức bên ngoài ngữ cảnh.
+                                - Nếu ngữ cảnh không đủ để trả lời đầy đủ, hãy nêu rõ giới hạn thông tin.
+
+                            # Yêu cầu định dạng:
+                                - Không sử dụng ký hiệu markdown như ##, ### hoặc dấu * để định dạng tiêu đề.
+                                - Không sử dụng ký hiệu ** ** để bọc tên rắn.
+                                - Tên khoa học của rắn được viết hoa chữ cái đầu và in đậm.
+                                - Tên thông dụng tiếng Việt được viết ngay sau tên khoa học.Ví dụ: Bungarus fasciatus (Rắn cạp nống).
+                                - Chia nội dung thành các phần được đánh số (1, 2, 3, ...).
+                                - Sử dụng các đoạn văn ngắn, ngắt dòng rõ ràng.
+                                - Văn phong khoa học, giống như một nhà nghiên cứu viết trong tài liệu Word.
+
+                            # Kết thúc:
+                            Ở cuối câu trả lời, hãy đề xuất 3–5 câu hỏi liên quan (dạng gạch đầu dòng) 
+                            để người đọc có thể tìm hiểu sâu hơn về loài rắn này, 
+                            sau đó mời người dùng chọn một câu hỏi để tiếp tục.
+                            Với cấu trúc câu hỏi bao gồm nội dung chính như sau : 
+                                - Tên khoa học và tên thông thường
+                                - Phân loại học tập
+                                - Cấu hình đặc biệt
+                                - Độc tính
+                                - Hành vi săn bắn
+                                - Hành vi và sinh thái học
+                                - Phân vùng địa lý và môi trường sống
+                                - Sinh sản
+                                - Bảo tồn trạng thái
+                                - Nghiên cứu có giá trị
+                                - Ý nghĩa đối với con người
+                                - Triệu chứng khi đã sẵn sàng
+                                - Xử lý như thế nào
+
+                            # Ví dụ mẫu trả lời:
+
+                            Bungarus fasciatus (Rắn cạp nia bắc)
+
+                            1. Đặc điểm nhận dạng (màu sắc, hình dáng, kích thước)  
+                            Bungarus fasciatus có thân hình tròn, kích thước trung bình đến lớn.  
+                            Màu sắc đặc trưng gồm các khoang màu đen và vàng xen kẽ rõ ràng dọc theo chiều dài cơ thể.  
+                            Đầu nhỏ, không phân biệt rõ với cổ, mắt nhỏ, phù hợp với tập tính hoạt động về đêm.
+
+                            2. Môi trường sống và phân bố địa lý  
+                            Theo thông tin trong ngữ cảnh, loài này phân bố tại một số khu vực thuộc Đông Nam Á.  
+                            Rắn thường được ghi nhận trong các khu rừng thưa, rìa rừng và các khu vực gần nơi cư trú của con người.  
+                            Một số chi tiết về sinh cảnh cụ thể chưa được mô tả đầy đủ trong dữ liệu hiện có.
+
+                            3. Mức độ nguy hiểm (có độc hay không, độc tính)  
+                            Bungarus fasciatus là loài rắn có nọc độc thần kinh mạnh.  
+                            Nọc độc có thể gây liệt cơ và suy hô hấp nếu không được điều trị kịp thời.  
+
+                            Câu hỏi gợi ý để bạn tìm hiểu thêm về Bungarus fasciatus:
+                            - ...
+                            - ...
+                            """
 
         try:
             contents = [
@@ -207,14 +301,13 @@ Response:"""
         
         conversation_text = "\n".join(conversation_lines)
         
-        prompt = f"""Please provide a concise summary of the following conversation about snakes. 
-Focus on the main topics discussed, key questions asked, and important information provided.
-Keep the summary under 200 words.
+        prompt = f"""Hãy tóm tắt ngắn gọn cuộc hội thoại sau đây về loài rắn.Tập ​​trung vào các chủ đề chính được thảo luận,
+                    các câu hỏi quan trọng được đặt ra và thông tin quan trọng được cung cấp.Giữ bản tóm tắt dưới 200 từ.
 
-Conversation:
-{conversation_text}
+                    Conversation:
+                    {conversation_text}
 
-Summary:"""
+                    Summary:"""
 
         try:
             contents = [

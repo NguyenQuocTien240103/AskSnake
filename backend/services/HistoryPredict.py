@@ -13,28 +13,6 @@ load_dotenv()
 api_key_cookie = APIKeyCookie(name="access_token", auto_error=False)
 
 class HistoryPredictService:
-    # async def get_all_history_predict(page: int =1, limit: int =10) -> dict:
-
-        # col = db["users"]
-        # skip = (page - 1) * limit
-        # filter = {"role":"user"}
-        # cursor = (
-        #     col.find(filter)
-        #     .sort("createdAt", -1)
-        #     .skip(skip)
-        #     .limit(limit)
-        # )
-        # data = await cursor.to_list(limit)
-        # for item in data:
-        #     item["_id"] = str(item["_id"])
-        #     item.pop("password", None)
-        # total = await col.count_documents(filter)
-        # return {
-        #     "page": page,
-        #     "limit": limit,
-        #     "total": total,
-        #     "data": data
-        # }
     async def get_all_history_predict() -> dict:
         cursor = db["history_predict"].find().sort("created_at", -1)
         result = []
